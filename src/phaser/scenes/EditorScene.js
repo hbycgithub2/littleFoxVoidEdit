@@ -158,6 +158,9 @@ export default class EditorScene extends Phaser.Scene {
         // 使用注册表创建热区
         const hotspot = hotspotRegistry.create(this, config);
         
+        // ✅ 关键修复：必须先添加到场景显示列表
+        this.add.existing(hotspot);
+        
         // 优化拖拽性能（优先级 3）
         this.dragOptimizer.optimizeDrag(hotspot);
         
@@ -169,24 +172,21 @@ export default class EditorScene extends Phaser.Scene {
             }
         });
         
-        // ✅ 关键修复：先添加到场景显示列表
-        this.add.existing(hotspot);
-        
-        // 然后添加到容器（用于管理）
-        this.hotspotContainer.add(hotspot);
+        // 添加到容器（用于管理，但不影响渲染）
+        // 注意：Container.add()会自动将对象从displayList移除，所以要在add.existing()之后
+        // 但我们不使用Container.add()，直接管理数组
         this.hotspots.push(hotspot);
         
-        console.log('📦 热区已添加到容器:', {
-            containerChildren: this.hotspotContainer.length,
+        console.log('📦 热区已添加:', {
             hotspotDepth: hotspot.depth,
             hotspotVisible: hotspot.visible,
             hotspotActive: hotspot.active,
+            displayList: hotspot.displayList,
             hotspotX: hotspot.x,
             hotspotY: hotspot.y
         });
         
         // 添加到图层（优先级 3.1）
-        // 优先添加到当前选中的图层，否则添加到默认图层
         const currentLayerId = this.registry.get('currentLayerId');
         const targetLayer = currentLayerId 
             ? this.layerManager.getLayer(currentLayerId)
@@ -196,7 +196,7 @@ export default class EditorScene extends Phaser.Scene {
             this.layerManager.addHotspotToLayer(hotspot, targetLayer.id);
         }
         
-        // 立即检查并设置可见性（确保新创建的热区能立即显示）
+        // 立即检查并设置可见性
         const videoTime = this.registry.get('videoTime') || 0;
         const shouldShow = hotspot.shouldShow(videoTime);
         
@@ -205,14 +205,11 @@ export default class EditorScene extends Phaser.Scene {
             videoTime: videoTime,
             startTime: config.startTime,
             endTime: config.endTime,
-            shouldShow: shouldShow,
-            hotspotVisible: hotspot.visible
+            shouldShow: shouldShow
         });
         
         hotspot.setVisible(shouldShow);
         hotspot.setActive(shouldShow);
-        
-        // 强制设置深度，确保在最上层
         hotspot.setDepth(1000);
         
         console.log('✅ 热区已添加，visible:', hotspot.visible, 'active:', hotspot.active, 'depth:', hotspot.depth);

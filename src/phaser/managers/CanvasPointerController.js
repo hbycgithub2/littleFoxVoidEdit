@@ -46,14 +46,15 @@ export default class CanvasPointerController {
     updatePointerEvents(drawMode) {
         if (!this.canvas) return;
         
+        // ✅ 修复：Canvas 始终保持 pointer-events: auto
+        // 因为我们需要选择、拖拽、缩放热区
+        // 视频进度条的保护通过 InputManager.isInVideoControlArea() 实现
+        this.canvas.style.pointerEvents = 'auto';
+        
         if (drawMode) {
-            // 绘制模式激活：允许 Canvas 接收事件
-            this.canvas.style.pointerEvents = 'auto';
-            console.log('CanvasPointerController: Canvas pointer-events = auto');
+            console.log('CanvasPointerController: 绘制模式激活 -', drawMode);
         } else {
-            // 绘制模式关闭：Canvas 不拦截事件，让视频进度条可用
-            this.canvas.style.pointerEvents = 'none';
-            console.log('CanvasPointerController: Canvas pointer-events = none');
+            console.log('CanvasPointerController: 绘制模式关闭');
         }
     }
     
