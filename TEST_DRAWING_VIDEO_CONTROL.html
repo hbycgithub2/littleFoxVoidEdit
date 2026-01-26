@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画圈与视频进度条兼容性测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-item {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ddd;
+            padding-left: 15px;
+        }
+        
+        .test-item.pass {
+            border-left-color: #00ff00;
+            background: #f0fff0;
+        }
+        
+        .test-item.fail {
+            border-left-color: #ff0000;
+            background: #fff0f0;
+        }
+        
+        .test-item.pending {
+            border-left-color: #ffaa00;
+            background: #fff8f0;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .status.pass { background: #00ff00; color: #000; }
+        .status.fail { background: #ff0000; color: #fff; }
+        .status.pending { background: #ffaa00; color: #000; }
+        
+        button {
+            background: #00ff00;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #00dd00;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .code {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 画圈与视频进度条兼容性测试</h1>
+    
+    <div class="test-section">
+        <h2>📋 测试说明</h2>
+        <div class="instructions">
+            <p><strong>测试目标：</strong>验证画圈功能和视频进度条可以同时正常工作</p>
+            <p><strong>方案：</strong>方案4 - 区域分离 + 智能判断</p>
+            <p><strong>核心机制：</strong></p>
+            <ul>
+                <li>默认状态：Canvas不拦截事件，视频进度条可用</li>
+                <li>激活绘制工具：Canvas接收事件，可以画圈</li>
+                <li>智能保护区：视频底部50px，进度条始终可用</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🚀 快速启动</h2>
+        <div class="instructions">
+            <p>1. 确保服务器正在运行：</p>
+            <div class="code">node server.js</div>
+            <p>2. 打开主应用：</p>
+            <div class="code">http://localhost:3000/index.html</div>
+            <p>3. 按照下面的测试清单逐项测试</p>
+        </div>
+        <button onclick="window.open('index.html', '_blank')">🎬 打开主应用</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>✅ 测试清单</h2>
+        
+        <h3>测试组 1：默认状态（未激活绘制工具）</h3>
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>1.1 视频进度条可拖动</strong>
+            <p>操作：直接拖动视频底部的进度条</p>
+            <p>预期：进度条正常响应，视频跳转到对应时间</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>1.2 Canvas不拦截事件</strong>
+            <p>操作：在视频区域点击鼠标</p>
+            <p>预期：不会触发任何绘制行为</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>1.3 控制台日志</strong>
+            <p>操作：打开浏览器控制台（F12）</p>
+            <p>预期：看到 "CanvasPointerController: Canvas pointer-events = none"</p>
+        </div>
+        
+        <h3>测试组 2：激活绘制工具</h3>
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>2.1 激活圆形工具</strong>
+            <p>操作：点击工具栏的圆形按钮（⭕）</p>
+            <p>预期：按钮高亮显示，控制台显示 "Canvas pointer-events = auto"</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>2.2 在视频中间画圈</strong>
+            <p>操作：在视频中间区域按住鼠标拖动</p>
+            <p>预期：显示绿色圆形预览，释放鼠标后创建热区</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>2.3 测试矩形工具</strong>
+            <p>操作：点击矩形按钮（▭），在视频上拖动</p>
+            <p>预期：可以正常绘制矩形热区</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>2.4 测试椭圆工具</strong>
+            <p>操作：点击椭圆按钮（⬭），在视频上拖动</p>
+            <p>预期：可以正常绘制椭圆热区</p>
+        </div>
+        
+        <h3>测试组 3：智能保护区（关键测试）</h3>
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>3.1 绘制模式下拖动进度条</strong>
+            <p>操作：保持圆形工具激活状态，拖动视频底部进度条</p>
+            <p>预期：进度条正常工作，不会触发画圈</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>3.2 在保护区边界测试</strong>
+            <p>操作：在视频底部50px区域内点击</p>
+            <p>预期：不触发画圈，事件穿透到视频</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>3.3 在保护区上方画圈</strong>
+            <p>操作：在视频底部50px以上区域画圈</p>
+            <p>预期：可以正常画圈</p>
+        </div>
+        
+        <h3>测试组 4：退出绘制模式</h3>
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>4.1 按ESC退出</strong>
+            <p>操作：按ESC键</p>
+            <p>预期：工具按钮取消高亮，控制台显示 "Canvas pointer-events = none"</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>4.2 完成绘制后自动退出</strong>
+            <p>操作：画一个圈并释放鼠标</p>
+            <p>预期：创建热区后，绘制模式自动关闭</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>4.3 进度条恢复正常</strong>
+            <p>操作：退出绘制模式后，拖动进度条</p>
+            <p>预期：进度条完全正常工作</p>
+        </div>
+        
+        <h3>测试组 5：其他功能不受影响</h3>
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>5.1 热区选择</strong>
+            <p>操作：点击已创建的热区</p>
+            <p>预期：热区被选中，显示缩放手柄</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>5.2 热区拖动</strong>
+            <p>操作：拖动选中的热区</p>
+            <p>预期：热区可以正常移动</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>5.3 热区缩放</strong>
+            <p>操作：拖动热区的缩放手柄</p>
+            <p>预期：热区可以正常缩放</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>5.4 撤销/重做</strong>
+            <p>操作：点击撤销按钮（↶）</p>
+            <p>预期：最后创建的热区被删除</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>5.5 图层管理</strong>
+            <p>操作：在图层面板中切换图层</p>
+            <p>预期：图层功能正常工作</p>
+        </div>
+        
+        <div class="test-item pending">
+            <span class="status pending">待测试</span>
+            <strong>5.6 时间轴</strong>
+            <p>操作：在底部时间轴面板拖动热区时间范围</p>
+            <p>预期：时间轴功能正常工作</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🐛 问题报告</h2>
+        <div class="instructions">
+            <p>如果发现任何问题，请记录以下信息：</p>
+            <ul>
+                <li>测试项编号（如：3.1）</li>
+                <li>实际行为描述</li>
+                <li>浏览器控制台错误信息</li>
+                <li>复现步骤</li>
+            </ul>
+        </div>
+        <textarea id="bugReport" rows="6" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="在此记录发现的问题..."></textarea>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 测试结果统计</h2>
+        <div id="stats" style="font-size: 18px; padding: 20px; background: #f9f9f9; border-radius: 5px;">
+            <p>✅ 通过：<strong id="passCount">0</strong> / 21</p>
+            <p>❌ 失败：<strong id="failCount">0</strong> / 21</p>
+            <p>⏳ 待测试：<strong id="pendingCount">21</strong> / 21</p>
+        </div>
+    </div>
+    
+    <script>
+        // 简单的测试状态管理
+        function updateTestItem(element, status) {
+            element.className = 'test-item ' + status;
+            const statusSpan = element.querySelector('.status');
+            statusSpan.className = 'status ' + status;
+            statusSpan.textContent = status === 'pass' ? '✅ 通过' : status === 'fail' ? '❌ 失败' : '⏳ 待测试';
+            updateStats();
+        }
+        
+        function updateStats() {
+            const passCount = document.querySelectorAll('.test-item.pass').length;
+            const failCount = document.querySelectorAll('.test-item.fail').length;
+            const pendingCount = document.querySelectorAll('.test-item.pending').length;
+            
+            document.getElementById('passCount').textContent = passCount;
+            document.getElementById('failCount').textContent = failCount;
+            document.getElementById('pendingCount').textContent = pendingCount;
+        }
+        
+        // 为每个测试项添加点击事件
+        document.querySelectorAll('.test-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const currentStatus = this.classList.contains('pass') ? 'pass' : 
+                                    this.classList.contains('fail') ? 'fail' : 'pending';
+                
+                let newStatus;
+                if (currentStatus === 'pending') {
+                    newStatus = 'pass';
+                } else if (currentStatus === 'pass') {
+                    newStatus = 'fail';
+                } else {
+                    newStatus = 'pending';
+                }
+                
+                updateTestItem(this, newStatus);
+            });
+            
+            item.style.cursor = 'pointer';
+            item.title = '点击切换状态：待测试 → 通过 → 失败 → 待测试';
+        });
+        
+        console.log('测试页面已加载');
+        console.log('点击测试项可以标记测试状态');
+    </script>
+</body>
+</html>

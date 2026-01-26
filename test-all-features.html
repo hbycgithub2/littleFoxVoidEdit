@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>功能测试 - 3.1 到 3.6</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+        .test-section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 5px; }
+        .test-section h2 { color: #00ff00; margin-top: 0; }
+        .test-item { margin: 10px 0; padding: 10px; background: #333; border-radius: 3px; }
+        .status { display: inline-block; width: 20px; height: 20px; border-radius: 50%; margin-right: 10px; }
+        .status.pass { background: #00ff00; }
+        .status.fail { background: #ff0000; }
+        .status.pending { background: #ffff00; }
+        button { padding: 8px 15px; margin: 5px; background: #00ff00; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #00cc00; }
+        #results { margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 功能测试：3.1 到 3.6</h1>
+    
+    <div class="test-section">
+        <h2>3.1 图层管理 (LayerManager)</h2>
+        <div class="test-item">
+            <span class="status pending" id="test-3-1-1"></span>
+            <span>LayerManager 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-1-2"></span>
+            <span>LayerPanelController 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-1-3"></span>
+            <span>默认图层存在</span>
+        </div>
+        <button onclick="testLayerManager()">测试图层管理</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3.2 对齐和分布工具 (AlignmentManager)</h2>
+        <div class="test-item">
+            <span class="status pending" id="test-3-2-1"></span>
+            <span>AlignmentManager 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-2-2"></span>
+            <span>对齐按钮存在</span>
+        </div>
+        <button onclick="testAlignmentManager()">测试对齐工具</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3.3 热区分组 (GroupManager)</h2>
+        <div class="test-item">
+            <span class="status pending" id="test-3-3-1"></span>
+            <span>GroupManager 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-3-2"></span>
+            <span>分组按钮存在</span>
+        </div>
+        <button onclick="testGroupManager()">测试分组功能</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3.4 时间轴可视化 (TimelinePanel)</h2>
+        <div class="test-item">
+            <span class="status pending" id="test-3-4-1"></span>
+            <span>TimelinePanel 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-4-2"></span>
+            <span>Canvas 元素存在</span>
+        </div>
+        <button onclick="testTimelinePanel()">测试时间轴</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3.5 样式预设 (StyleManager)</h2>
+        <div class="test-item">
+            <span class="status pending" id="test-3-5-1"></span>
+            <span>StyleManager 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-5-2"></span>
+            <span>StylePanelController 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-5-3"></span>
+            <span>默认预设存在</span>
+        </div>
+        <button onclick="testStyleManager()">测试样式预设</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3.6 加载动画 (LoadingManager)</h2>
+        <div class="test-item">
+            <span class="status pending" id="test-3-6-1"></span>
+            <span>LoadingManager 已初始化</span>
+        </div>
+        <div class="test-item">
+            <span class="status pending" id="test-3-6-2"></span>
+            <span>使用 Phaser Tween 系统</span>
+        </div>
+        <button onclick="testLoadingManager()">测试加载动画</button>
+    </div>
+    
+    <button onclick="runAllTests()" style="background: #ff9900; font-size: 16px; font-weight: bold;">🚀 运行所有测试</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        function setStatus(id, status) {
+            const el = document.getElementById(id);
+            el.className = 'status ' + status;
+        }
+        
+        function log(message) {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' - ' + message + '</div>';
+        }
+        
+        function testLayerManager() {
+            log('开始测试图层管理...');
+            
+            // 检查 LayerManager
+            const scene = window.game?.scene?.getScene('EditorScene');
+            if (scene && scene.layerManager) {
+                setStatus('test-3-1-1', 'pass');
+                log('✅ LayerManager 已初始化');
+            } else {
+                setStatus('test-3-1-1', 'fail');
+                log('❌ LayerManager 未初始化');
+            }
+            
+            // 检查 LayerPanelController
+            if (window.layerPanelController) {
+                setStatus('test-3-1-2', 'pass');
+                log('✅ LayerPanelController 已初始化');
+            } else {
+                setStatus('test-3-1-2', 'fail');
+                log('❌ LayerPanelController 未初始化');
+            }
+            
+            // 检查默认图层
+            if (scene && scene.layerManager && scene.layerManager.getLayer('default')) {
+                setStatus('test-3-1-3', 'pass');
+                log('✅ 默认图层存在');
+            } else {
+                setStatus('test-3-1-3', 'fail');
+                log('❌ 默认图层不存在');
+            }
+        }
+        
+        function testAlignmentManager() {
+            log('开始测试对齐工具...');
+            
+            const scene = window.game?.scene?.getScene('EditorScene');
+            if (scene && scene.alignmentManager) {
+                setStatus('test-3-2-1', 'pass');
+                log('✅ AlignmentManager 已初始化');
+            } else {
+                setStatus('test-3-2-1', 'fail');
+                log('❌ AlignmentManager 未初始化');
+            }
+            
+            const alignBtn = document.getElementById('alignLeftBtn');
+            if (alignBtn) {
+                setStatus('test-3-2-2', 'pass');
+                log('✅ 对齐按钮存在');
+            } else {
+                setStatus('test-3-2-2', 'fail');
+                log('❌ 对齐按钮不存在');
+            }
+        }
+        
+        function testGroupManager() {
+            log('开始测试分组功能...');
+            
+            const scene = window.game?.scene?.getScene('EditorScene');
+            if (scene && scene.groupManager) {
+                setStatus('test-3-3-1', 'pass');
+                log('✅ GroupManager 已初始化');
+            } else {
+                setStatus('test-3-3-1', 'fail');
+                log('❌ GroupManager 未初始化');
+            }
+            
+            const groupBtn = document.getElementById('groupBtn');
+            if (groupBtn) {
+                setStatus('test-3-3-2', 'pass');
+                log('✅ 分组按钮存在');
+            } else {
+                setStatus('test-3-3-2', 'fail');
+                log('❌ 分组按钮不存在');
+            }
+        }
+        
+        function testTimelinePanel() {
+            log('开始测试时间轴...');
+            
+            if (window.timelinePanel) {
+                setStatus('test-3-4-1', 'pass');
+                log('✅ TimelinePanel 已初始化');
+            } else {
+                setStatus('test-3-4-1', 'fail');
+                log('❌ TimelinePanel 未初始化');
+            }
+            
+            const canvas = document.getElementById('timelineCanvas');
+            if (canvas) {
+                setStatus('test-3-4-2', 'pass');
+                log('✅ Canvas 元素存在');
+            } else {
+                setStatus('test-3-4-2', 'fail');
+                log('❌ Canvas 元素不存在');
+            }
+        }
+        
+        function testStyleManager() {
+            log('开始测试样式预设...');
+            
+            const scene = window.game?.scene?.getScene('EditorScene');
+            if (scene && scene.styleManager) {
+                setStatus('test-3-5-1', 'pass');
+                log('✅ StyleManager 已初始化');
+            } else {
+                setStatus('test-3-5-1', 'fail');
+                log('❌ StyleManager 未初始化');
+            }
+            
+            if (window.stylePanelController) {
+                setStatus('test-3-5-2', 'pass');
+                log('✅ StylePanelController 已初始化');
+            } else {
+                setStatus('test-3-5-2', 'fail');
+                log('❌ StylePanelController 未初始化');
+            }
+            
+            if (scene && scene.styleManager && scene.styleManager.getPresets().length >= 5) {
+                setStatus('test-3-5-3', 'pass');
+                log('✅ 默认预设存在 (' + scene.styleManager.getPresets().length + ' 个)');
+            } else {
+                setStatus('test-3-5-3', 'fail');
+                log('❌ 默认预设不足');
+            }
+        }
+        
+        function testLoadingManager() {
+            log('开始测试加载动画...');
+            
+            const scene = window.game?.scene?.getScene('EditorScene');
+            if (scene && scene.loadingManager) {
+                setStatus('test-3-6-1', 'pass');
+                log('✅ LoadingManager 已初始化');
+                
+                // 测试显示/隐藏
+                scene.loadingManager.show('测试加载...', true);
+                setTimeout(() => {
+                    scene.loadingManager.updateProgress(0.5);
+                    setTimeout(() => {
+                        scene.loadingManager.hide();
+                        log('✅ 加载动画测试完成');
+                    }, 500);
+                }, 500);
+            } else {
+                setStatus('test-3-6-1', 'fail');
+                log('❌ LoadingManager 未初始化');
+            }
+            
+            if (scene && scene.tweens) {
+                setStatus('test-3-6-2', 'pass');
+                log('✅ 使用 Phaser Tween 系统');
+            } else {
+                setStatus('test-3-6-2', 'fail');
+                log('❌ Phaser Tween 系统不可用');
+            }
+        }
+        
+        function runAllTests() {
+            document.getElementById('results').innerHTML = '<h3>测试结果：</h3>';
+            log('开始运行所有测试...');
+            
+            testLayerManager();
+            setTimeout(() => testAlignmentManager(), 100);
+            setTimeout(() => testGroupManager(), 200);
+            setTimeout(() => testTimelinePanel(), 300);
+            setTimeout(() => testStyleManager(), 400);
+            setTimeout(() => testLoadingManager(), 500);
+            
+            setTimeout(() => {
+                log('所有测试完成！');
+            }, 2000);
+        }
+        
+        // 页面加载完成后自动运行测试
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('页面加载完成，等待 Phaser 初始化...');
+                setTimeout(runAllTests, 1000);
+            }, 500);
+        });
+    </script>
+</body>
+</html>

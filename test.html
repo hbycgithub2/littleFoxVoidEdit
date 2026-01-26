@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Fox Video Editor - Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .status {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .status h2 {
+            color: #00ff00;
+            margin-bottom: 10px;
+        }
+        .status-item {
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        .status-item.success::before {
+            content: "✅";
+            margin-right: 10px;
+        }
+        .status-item.error::before {
+            content: "❌";
+            margin-right: 10px;
+        }
+        .status-item.warning::before {
+            content: "⚠️";
+            margin-right: 10px;
+        }
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+    </style>
+</head>
+<body>
+    <div class="status">
+        <h2>系统状态检查</h2>
+        <div id="statusList"></div>
+    </div>
+    
+    <div class="status">
+        <h2>快速测试</h2>
+        <button onclick="testPhaser()">测试 Phaser</button>
+        <button onclick="testModules()">测试模块加载</button>
+        <button onclick="window.location.href='index.html'">启动编辑器</button>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script>
+        const statusList = document.getElementById('statusList');
+        
+        function addStatus(message, type = 'success') {
+            const item = document.createElement('div');
+            item.className = `status-item ${type}`;
+            item.textContent = message;
+            statusList.appendChild(item);
+        }
+        
+        // 检查 Phaser
+        if (typeof Phaser !== 'undefined') {
+            addStatus(`Phaser ${Phaser.VERSION} 加载成功`, 'success');
+        } else {
+            addStatus('Phaser 加载失败', 'error');
+        }
+        
+        // 检查浏览器支持
+        if (typeof Promise !== 'undefined') {
+            addStatus('浏览器支持 ES6 Promise', 'success');
+        } else {
+            addStatus('浏览器不支持 ES6 Promise', 'error');
+        }
+        
+        if (typeof fetch !== 'undefined') {
+            addStatus('浏览器支持 Fetch API', 'success');
+        } else {
+            addStatus('浏览器不支持 Fetch API', 'warning');
+        }
+        
+        // 检查模块支持
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.textContent = 'window.moduleSupported = true;';
+        document.head.appendChild(script);
+        
+        setTimeout(() => {
+            if (window.moduleSupported) {
+                addStatus('浏览器支持 ES6 Modules', 'success');
+            } else {
+                addStatus('浏览器不支持 ES6 Modules', 'error');
+            }
+        }, 100);
+        
+        function testPhaser() {
+            try {
+                const config = {
+                    type: Phaser.AUTO,
+                    width: 400,
+                    height: 300,
+                    transparent: true,
+                    scene: {
+                        create: function() {
+                            this.add.text(200, 150, 'Phaser 工作正常!', {
+                                fontSize: '24px',
+                                color: '#00ff00'
+                            }).setOrigin(0.5);
+                            
+                            setTimeout(() => {
+                                this.game.destroy(true);
+                                addStatus('Phaser 测试通过', 'success');
+                            }, 2000);
+                        }
+                    }
+                };
+                
+                const game = new Phaser.Game(config);
+            } catch (error) {
+                addStatus('Phaser 测试失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function testModules() {
+            try {
+                // 测试模块加载
+                const module = await import('./src/phaser/config.js');
+                addStatus('模块加载测试通过', 'success');
+                console.log('Config loaded:', module.default);
+            } catch (error) {
+                addStatus('模块加载失败: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
