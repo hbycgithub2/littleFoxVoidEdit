@@ -307,19 +307,8 @@ export default class Hotspot extends Phaser.GameObjects.Graphics {
      * 检查是否应该显示（根据视频时间）
      */
     shouldShow(videoTime) {
-        const result = videoTime >= this.config.startTime && 
+        return videoTime >= this.config.startTime && 
                videoTime <= this.config.endTime;
-        
-        console.log('🔍 shouldShow检查:', {
-            hotspotId: this.config.id,
-            shape: this.config.shape,
-            videoTime: videoTime,
-            startTime: this.config.startTime,
-            endTime: this.config.endTime,
-            result: result
-        });
-        
-        return result;
     }
     
     /**

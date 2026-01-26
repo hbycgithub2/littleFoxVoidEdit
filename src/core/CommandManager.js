@@ -161,6 +161,43 @@ class PasteHotspotsCommand extends Command {
 }
 
 /**
+ * 更新热区时间命令（用于时间轴拖拽）
+ */
+class UpdateTimeCommand extends Command {
+    constructor(scene, hotspotId, oldTime, newTime) {
+        super();
+        this.scene = scene;
+        this.hotspotId = hotspotId;
+        this.oldTime = { 
+            startTime: oldTime.startTime, 
+            endTime: oldTime.endTime 
+        };
+        this.newTime = { 
+            startTime: newTime.startTime, 
+            endTime: newTime.endTime 
+        };
+    }
+    
+    execute() {
+        const hotspot = this.scene.hotspots.find(h => h.config.id === this.hotspotId);
+        if (hotspot) {
+            hotspot.config.startTime = this.newTime.startTime;
+            hotspot.config.endTime = this.newTime.endTime;
+            this.scene.syncToRegistry();
+        }
+    }
+    
+    undo() {
+        const hotspot = this.scene.hotspots.find(h => h.config.id === this.hotspotId);
+        if (hotspot) {
+            hotspot.config.startTime = this.oldTime.startTime;
+            hotspot.config.endTime = this.oldTime.endTime;
+            this.scene.syncToRegistry();
+        }
+    }
+}
+
+/**
  * 命令管理器
  */
 export default class CommandManager {
@@ -244,4 +281,4 @@ export default class CommandManager {
 }
 
 // 导出命令类（供外部使用）
-export { AddHotspotCommand, DeleteHotspotCommand, MoveHotspotCommand, ResizeHotspotCommand, ModifyHotspotCommand, PasteHotspotsCommand };
+export { AddHotspotCommand, DeleteHotspotCommand, MoveHotspotCommand, ResizeHotspotCommand, ModifyHotspotCommand, PasteHotspotsCommand, UpdateTimeCommand };

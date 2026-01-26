@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间轴导出/导入功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        h2 {
+            color: #00ff00;
+            margin-top: 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #00ff00;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #000;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .info-box {
+            padding: 15px;
+            background: #333;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .success {
+            color: #00ff00;
+        }
+        .error {
+            color: #ff6666;
+        }
+        pre {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .stat-item {
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗂️ 时间轴导出/导入功能测试</h1>
+        
+        <div class="section">
+            <h2>功能说明</h2>
+            <div class="info-box">
+                <p><strong>已实现功能：</strong></p>
+                <ul>
+                    <li>✅ 导出完整时间轴数据为 JSON</li>
+                    <li>✅ 导出热区数据为 CSV</li>
+                    <li>✅ 导入 JSON 数据</li>
+                    <li>✅ 数据验证和错误处理</li>
+                    <li>✅ 支持选择性导入（热区、图层、标记等）</li>
+                    <li>✅ 文件下载和上传</li>
+                    <li>✅ 数据统计信息</li>
+                </ul>
+                
+                <p><strong>使用方法：</strong></p>
+                <ul>
+                    <li>右键点击时间轴空白区域 → 导出/导入选项</li>
+                    <li>快捷键：Ctrl+E 导出，Ctrl+I 导入（需要在实际项目中配置）</li>
+                    <li>支持拖拽 JSON 文件到时间轴导入</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>数据统计</h2>
+            <div class="stats" id="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="hotspot-count">0</div>
+                    <div class="stat-label">热区数量</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="layer-count">0</div>
+                    <div class="stat-label">图层数量</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="marker-count">0</div>
+                    <div class="stat-label">标记数量</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="duration">0.00s</div>
+                    <div class="stat-label">视频时长</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>导出功能测试</h2>
+            <button onclick="testExportJSON()">导出为 JSON</button>
+            <button onclick="testExportCSV()">导出为 CSV</button>
+            <button onclick="testGetData()">查看导出数据</button>
+            <div id="export-result" class="info-box" style="display: none;">
+                <pre id="export-data"></pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>导入功能测试</h2>
+            <button onclick="testImportDialog()">选择文件导入</button>
+            <button onclick="testImportSample()">导入示例数据</button>
+            <button onclick="testClearData()">清除所有数据</button>
+            <div id="import-result" class="info-box" style="display: none;"></div>
+        </div>
+        
+        <div class="section">
+            <h2>数据验证测试</h2>
+            <button onclick="testValidation()">测试数据验证</button>
+            <div id="validation-result" class="info-box" style="display: none;"></div>
+        </div>
+        
+        <div class="section">
+            <h2>事件监听</h2>
+            <div class="info-box">
+                <div id="event-log" style="max-height: 200px; overflow-y: auto;">
+                    <p style="color: #666;">等待事件...</p>
+                </div>
+            </div>
+            <button onclick="clearEventLog()">清除日志</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import TimelineDataController from './src/dom/timeline/TimelineDataController.js';
+        
+        // 模拟环境
+        const mockScene = {
+            registry: {
+                data: { hotspots: [] },
+                get: function(key) { return this.data[key] || []; },
+                set: function(key, value) { this.data[key] = value; }
+            },
+            events: {
+                emit: (event, data) => logEvent(event, data),
+                on: () => {}
+            },
+            layerManager: {
+                layers: [
+                    { id: 1, name: 'Layer 1', visible: true, locked: false, hotspots: [] },
+                    { id: 2, name: 'Layer 2', visible: true, locked: false, hotspots: [] }
+                ],
+                getLayers: function() { return this.layers; },
+                getLayer: function(id) { return this.layers.find(l => l.id === id); },
+                addLayer: function(name) {
+                    const layer = { 
+                        id: this.layers.length + 1, 
+                        name, 
+                        visible: true, 
+                        locked: false, 
+                        hotspots: [] 
+                    };
+                    this.layers.push(layer);
+                    return layer;
+                }
+            },
+            hotspots: [],
+            createHotspot: function(config) {
+                this.hotspots.push({ config });
+                this.registry.set('hotspots', this.registry.get('hotspots').concat([config]));
+            }
+        };
+        
+        const mockTimeline = {
+            scene: mockScene,
+            game: { events: { emit: () => {} } },
+            videoDuration: 120,
+            currentTime: 0,
+            scale: 10,
+            virtualScrollController: { scrollY: 0 },
+            layerGroupController: {
+                isLayerCollapsed: () => false,
+                collapsedLayers: new Map()
+            },
+            markerController: {
+                markers: [],
+                clearAllMarkers: function() { this.markers = []; }
+            },
+            rangeController: {
+                getRange: () => null,
+                setRange: () => {},
+                startLoop: () => {},
+                isLooping: false
+            },
+            keyboardController: {
+                inPoint: null,
+                outPoint: null
+            },
+            render: () => {}
+        };
+        
+        // 创建控制器
+        window.dataController = new TimelineDataController(mockTimeline);
+        window.mockScene = mockScene;
+        
+        // 添加示例数据
+        function addSampleData() {
+            mockScene.registry.set('hotspots', [
+                {
+                    id: 'hotspot-1',
+                    shape: 'rectangle',
+                    layerId: 1,
+                    startTime: 5,
+                    endTime: 10,
+                    x: 100,
+                    y: 100,
+                    width: 200,
+                    height: 150,
+                    word: 'Sample 1',
+                    strokeColor: '#00ff00',
+                    fillColor: 'rgba(0, 255, 0, 0.3)',
+                    strokeWidth: 2,
+                    visible: true,
+                    locked: false
+                },
+                {
+                    id: 'hotspot-2',
+                    shape: 'circle',
+                    layerId: 2,
+                    startTime: 15,
+                    endTime: 25,
+                    x: 300,
+                    y: 200,
+                    radius: 80,
+                    word: 'Sample 2',
+                    strokeColor: '#ff0000',
+                    fillColor: 'rgba(255, 0, 0, 0.3)',
+                    strokeWidth: 2,
+                    visible: true,
+                    locked: false
+                }
+            ]);
+            
+            mockTimeline.markerController.markers = [
+                { id: 'marker-1', time: 10, label: 'Marker 1', type: 'default', color: '#00bfff' },
+                { id: 'marker-2', time: 20, label: 'Marker 2', type: 'important', color: '#ff0000' }
+            ];
+            
+            updateStats();
+        }
+        
+        // 更新统计
+        function updateStats() {
+            const stats = window.dataController.getStats();
+            document.getElementById('hotspot-count').textContent = stats.hotspotCount;
+            document.getElementById('layer-count').textContent = stats.layerCount;
+            document.getElementById('marker-count').textContent = stats.markerCount;
+            document.getElementById('duration').textContent = stats.totalDuration.toFixed(2) + 's';
+        }
+        
+        // 事件日志
+        function logEvent(event, data) {
+            const log = document.getElementById('event-log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.innerHTML = `<span style="color: #666;">[${time}]</span> <span style="color: #00ff00;">${event}</span>`;
+            if (data) {
+                entry.innerHTML += `<br><span style="color: #aaa; margin-left: 20px;">${JSON.stringify(data, null, 2)}</span>`;
+            }
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        window.clearEventLog = function() {
+            document.getElementById('event-log').innerHTML = '<p style="color: #666;">等待事件...</p>';
+        };
+        
+        // 测试函数
+        window.testExportJSON = function() {
+            addSampleData();
+            window.dataController.downloadJSON();
+            logEvent('手动触发', { action: 'exportJSON' });
+        };
+        
+        window.testExportCSV = function() {
+            addSampleData();
+            window.dataController.downloadCSV();
+            logEvent('手动触发', { action: 'exportCSV' });
+        };
+        
+        window.testGetData = function() {
+            addSampleData();
+            const data = window.dataController.exportData();
+            document.getElementById('export-data').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('export-result').style.display = 'block';
+            logEvent('手动触发', { action: 'getData' });
+        };
+        
+        window.testImportDialog = function() {
+            window.dataController.showFileDialog();
+            logEvent('手动触发', { action: 'importDialog' });
+        };
+        
+        window.testImportSample = function() {
+            const sampleData = {
+                version: '1.0.0',
+                exportTime: new Date().toISOString(),
+                video: { duration: 120, currentTime: 0 },
+                timeline: { scale: 10, scrollY: 0 },
+                hotspots: [
+                    {
+                        id: 'imported-1',
+                        shape: 'rectangle',
+                        layerId: 1,
+                        startTime: 30,
+                        endTime: 40,
+                        x: 150,
+                        y: 150,
+                        width: 180,
+                        height: 120,
+                        word: 'Imported',
+                        strokeColor: '#ffaa00',
+                        fillColor: 'rgba(255, 170, 0, 0.3)',
+                        strokeWidth: 2,
+                        visible: true,
+                        locked: false
+                    }
+                ],
+                layers: [],
+                markers: [],
+                range: null,
+                inOutPoints: { inPoint: null, outPoint: null }
+            };
+            
+            const success = window.dataController.importData(sampleData, { clearExisting: false });
+            const resultDiv = document.getElementById('import-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = success 
+                ? '<span class="success">✅ 导入成功！</span>' 
+                : '<span class="error">❌ 导入失败！</span>';
+            
+            updateStats();
+            logEvent('手动触发', { action: 'importSample', success });
+        };
+        
+        window.testClearData = function() {
+            window.dataController.clearAllData();
+            updateStats();
+            logEvent('手动触发', { action: 'clearData' });
+        };
+        
+        window.testValidation = function() {
+            const tests = [
+                { name: '有效数据', data: { version: '1.0.0', hotspots: [], layers: [] }, expected: true },
+                { name: '缺少版本', data: { hotspots: [] }, expected: false },
+                { name: '无效热区', data: { version: '1.0.0', hotspots: 'invalid' }, expected: false },
+                { name: 'null 数据', data: null, expected: false }
+            ];
+            
+            const results = tests.map(test => {
+                const result = window.dataController.validateData(test.data);
+                return `${test.name}: ${result === test.expected ? '✅ 通过' : '❌ 失败'}`;
+            });
+            
+            const resultDiv = document.getElementById('validation-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = results.join('<br>');
+            
+            logEvent('手动触发', { action: 'validation', results });
+        };
+        
+        // 初始化
+        addSampleData();
+        updateStats();
+        logEvent('系统', { message: '时间轴数据控制器已初始化' });
+    </script>
+</body>
+</html>
