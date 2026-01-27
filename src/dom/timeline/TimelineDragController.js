@@ -1,7 +1,7 @@
 // src/dom/timeline/TimelineDragController.js
 // 时间轴拖拽控制器 - 管理热区时间条的拖拽操作
 
-import { UpdateTimeCommand } from '../../core/CommandManager.js';
+import { UpdateTimeCommand, BatchUpdateTimeCommand } from '../../core/CommandManager.js';
 
 /**
  * 时间轴拖拽控制器
@@ -22,6 +22,7 @@ export default class TimelineDragController {
         this.dragTarget = null;
         this.dragStartTime = null; // 记录拖拽开始时的时间（用于撤销/重做）
         this.dragStartX = null; // 记录拖拽开始时的鼠标 X 坐标（用于整体移动）
+        this.batchOriginalTimes = null; // 批量操作时保存所有热区的原始时间
         
         // 常量
         this.handleWidth = 5; // 手柄宽度
@@ -71,7 +72,7 @@ export default class TimelineDragController {
     }
     
     /**
-     * 开始拖拽
+     * 开始拖拽（优化版 - 支持批量操作）
      * @param {object} target - 拖拽目标
      * @param {number} x - 鼠标 X 坐标
      */
@@ -85,10 +86,31 @@ export default class TimelineDragController {
             startTime: target.hotspot.startTime,
             endTime: target.hotspot.endTime
         };
+        
+        // 检查是否多选
+        const selectedIds = this.timeline.selectionController.getSelectedIds();
+        const isMultiSelect = selectedIds.length > 1 && selectedIds.includes(target.hotspot.id);
+        
+        if (isMultiSelect) {
+            // 批量操作：保存所有选中热区的原始时间
+            this.batchOriginalTimes = new Map();
+            const hotspots = this.scene.registry.get('hotspots') || [];
+            
+            hotspots.forEach(config => {
+                if (selectedIds.includes(config.id)) {
+                    this.batchOriginalTimes.set(config.id, {
+                        startTime: config.startTime,
+                        endTime: config.endTime
+                    });
+                }
+            });
+            
+            console.log(`🎯 开始批量拖拽 ${selectedIds.length} 个热区`);
+        }
     }
     
     /**
-     * 拖拽中
+     * 拖拽中（优化版 - 支持批量调整）
      * @param {number} x - 当前鼠标 X 坐标
      */
     drag(x) {
@@ -97,20 +119,48 @@ export default class TimelineDragController {
         let time = x / this.timeline.scale;
         const { hotspot, handle } = this.dragTarget;
         
+        // 检查是否多选
+        const selectedIds = this.timeline.selectionController.getSelectedIds();
+        const isMultiSelect = selectedIds.length > 1 && selectedIds.includes(hotspot.id);
+        
         if (handle === 'start') {
             // 拖拽开始手柄
             // 应用吸附
             if (this.timeline.snapController) {
                 time = this.timeline.snapController.snapTime(time, hotspot.id);
             }
-            hotspot.startTime = Math.max(0, Math.min(time, hotspot.endTime - 0.1));
+            
+            const newStartTime = Math.max(0, Math.min(time, hotspot.endTime - 0.1));
+            const deltaTime = newStartTime - this.dragStartTime.startTime;
+            
+            if (isMultiSelect) {
+                // 批量调整开始时间
+                this.batchAdjustStartTime(deltaTime);
+            } else {
+                // 单个调整
+                hotspot.startTime = newStartTime;
+                this.updateHotspotTimeImmediate(hotspot);
+            }
+            
         } else if (handle === 'end') {
             // 拖拽结束手柄
             // 应用吸附
             if (this.timeline.snapController) {
                 time = this.timeline.snapController.snapTime(time, hotspot.id);
             }
-            hotspot.endTime = Math.max(hotspot.startTime + 0.1, time);
+            
+            const newEndTime = Math.max(hotspot.startTime + 0.1, time);
+            const deltaTime = newEndTime - this.dragStartTime.endTime;
+            
+            if (isMultiSelect) {
+                // 批量调整结束时间
+                this.batchAdjustEndTime(deltaTime);
+            } else {
+                // 单个调整
+                hotspot.endTime = newEndTime;
+                this.updateHotspotTimeImmediate(hotspot);
+            }
+            
         } else if (handle === 'body') {
             // 拖拽整个时间条（保持持续时间不变）
             const deltaX = x - this.dragStartX;
@@ -130,17 +180,130 @@ export default class TimelineDragController {
                 newStartTime = Math.min(newStartTime, this.timeline.videoDuration - duration);
             }
             
-            hotspot.startTime = newStartTime;
-            hotspot.endTime = newStartTime + duration;
+            if (isMultiSelect) {
+                // 批量移动（保持相对位置）
+                const actualDelta = newStartTime - this.dragStartTime.startTime;
+                this.batchMoveTime(actualDelta);
+            } else {
+                // 单个移动
+                hotspot.startTime = newStartTime;
+                hotspot.endTime = newStartTime + duration;
+                this.updateHotspotTimeImmediate(hotspot);
+            }
         }
         
-        // 实时更新场景中的热区（不使用命令模式）
-        this.updateHotspotTimeImmediate(hotspot);
         this.timeline.render();
     }
     
     /**
-     * 结束拖拽
+     * 批量调整开始时间（优化版 - 更好的边界检查）
+     * @param {number} deltaTime - 时间偏移量
+     */
+    batchAdjustStartTime(deltaTime) {
+        const selectedIds = this.timeline.selectionController.getSelectedIds();
+        const hotspots = this.scene.registry.get('hotspots') || [];
+        
+        let adjustedCount = 0;
+        
+        hotspots.forEach(config => {
+            if (selectedIds.includes(config.id)) {
+                const newStartTime = Math.max(0, config.startTime + deltaTime);
+                // 确保开始时间不超过结束时间（保留最小间隔0.1秒）
+                if (newStartTime < config.endTime - 0.1) {
+                    config.startTime = newStartTime;
+                    this.updateHotspotTimeImmediate(config);
+                    adjustedCount++;
+                }
+            }
+        });
+        
+        return adjustedCount;
+    }
+    
+    /**
+     * 批量调整结束时间（优化版 - 更好的边界检查）
+     * @param {number} deltaTime - 时间偏移量
+     */
+    batchAdjustEndTime(deltaTime) {
+        const selectedIds = this.timeline.selectionController.getSelectedIds();
+        const hotspots = this.scene.registry.get('hotspots') || [];
+        
+        let adjustedCount = 0;
+        
+        hotspots.forEach(config => {
+            if (selectedIds.includes(config.id)) {
+                const newEndTime = config.endTime + deltaTime;
+                // 确保结束时间不小于开始时间（保留最小间隔0.1秒）
+                if (newEndTime > config.startTime + 0.1) {
+                    config.endTime = newEndTime;
+                    this.updateHotspotTimeImmediate(config);
+                    adjustedCount++;
+                }
+            }
+        });
+        
+        return adjustedCount;
+    }
+    
+    /**
+     * 批量移动时间（优化版 - 更好的边界检查和相对位置保持）
+     * @param {number} deltaTime - 时间偏移量
+     */
+    batchMoveTime(deltaTime) {
+        const selectedIds = this.timeline.selectionController.getSelectedIds();
+        const hotspots = this.scene.registry.get('hotspots') || [];
+        
+        // 第一遍：检查是否所有热区都能移动
+        let canMoveAll = true;
+        let maxDelta = deltaTime;
+        
+        hotspots.forEach(config => {
+            if (selectedIds.includes(config.id)) {
+                const duration = config.endTime - config.startTime;
+                let newStartTime = config.startTime + deltaTime;
+                
+                // 检查下边界
+                if (newStartTime < 0) {
+                    const adjustment = -config.startTime;
+                    maxDelta = Math.max(maxDelta, adjustment);
+                }
+                
+                // 检查上边界
+                if (this.timeline.videoDuration > 0) {
+                    const maxStart = this.timeline.videoDuration - duration;
+                    if (newStartTime > maxStart) {
+                        const adjustment = maxStart - config.startTime;
+                        maxDelta = Math.min(maxDelta, adjustment);
+                    }
+                }
+            }
+        });
+        
+        // 第二遍：应用调整后的偏移量
+        let adjustedCount = 0;
+        hotspots.forEach(config => {
+            if (selectedIds.includes(config.id)) {
+                const duration = config.endTime - config.startTime;
+                let newStartTime = config.startTime + maxDelta;
+                
+                // 最终边界检查
+                newStartTime = Math.max(0, newStartTime);
+                if (this.timeline.videoDuration > 0) {
+                    newStartTime = Math.min(newStartTime, this.timeline.videoDuration - duration);
+                }
+                
+                config.startTime = newStartTime;
+                config.endTime = newStartTime + duration;
+                this.updateHotspotTimeImmediate(config);
+                adjustedCount++;
+            }
+        });
+        
+        return adjustedCount;
+    }
+    
+    /**
+     * 结束拖拽（优化版 - 使用批量命令）
      */
     endDrag() {
         if (!this.isDragging || !this.dragTarget || !this.dragStartTime) {
@@ -159,47 +322,139 @@ export default class TimelineDragController {
         
         const { hotspot } = this.dragTarget;
         
-        // 检查时间是否真的改变了
-        const timeChanged = 
-            this.dragStartTime.startTime !== hotspot.startTime ||
-            this.dragStartTime.endTime !== hotspot.endTime;
+        // 检查是否多选
+        const selectedIds = this.timeline.selectionController.getSelectedIds();
+        const isMultiSelect = selectedIds.length > 1 && selectedIds.includes(hotspot.id);
         
-        if (timeChanged) {
-            // 创建命令并添加到历史记录
-            const command = new UpdateTimeCommand(
-                this.scene,
-                hotspot.id,
-                this.dragStartTime,
-                {
-                    startTime: hotspot.startTime,
-                    endTime: hotspot.endTime
+        if (isMultiSelect) {
+            // 批量操作：使用单个批量命令
+            const hotspots = this.scene.registry.get('hotspots') || [];
+            const updates = [];
+            
+            hotspots.forEach(config => {
+                if (selectedIds.includes(config.id)) {
+                    // 获取原始时间（从拖拽开始时保存的状态）
+                    const originalTime = this.getOriginalTime(config.id);
+                    
+                    // 检查时间是否真的改变了
+                    const timeChanged = 
+                        originalTime.startTime !== config.startTime ||
+                        originalTime.endTime !== config.endTime;
+                    
+                    if (timeChanged) {
+                        updates.push({
+                            hotspotId: config.id,
+                            oldTime: originalTime,
+                            newTime: {
+                                startTime: config.startTime,
+                                endTime: config.endTime
+                            }
+                        });
+                    }
                 }
-            );
-            
-            // 注意：不调用 execute()，因为时间已经在拖拽过程中更新了
-            // 直接添加到历史记录
-            this.scene.commandManager.history.push(command);
-            
-            // 清空重做栈
-            this.scene.commandManager.redoStack = [];
-            
-            // 发送历史变化事件
-            this.scene.events.emit('history:changed', {
-                canUndo: this.scene.commandManager.canUndo(),
-                canRedo: this.scene.commandManager.canRedo()
             });
+            
+            if (updates.length > 0) {
+                // 使用批量命令（一次撤销/重做操作）
+                const command = new BatchUpdateTimeCommand(this.scene, updates);
+                
+                // 直接添加到历史记录（不调用execute，因为已经更新了）
+                this.scene.commandManager.history.push(command);
+                
+                // 清空重做栈
+                this.scene.commandManager.redoStack = [];
+                
+                // 发送历史变化事件
+                this.scene.events.emit('history:changed', {
+                    canUndo: this.scene.commandManager.canUndo(),
+                    canRedo: this.scene.commandManager.canRedo()
+                });
+                
+                // 显示Toast提示
+                this.scene.events.emit('ui:showToast', {
+                    message: `✓ 已调整 ${updates.length} 个热区的时间`,
+                    duration: 2000,
+                    color: '#4CAF50'
+                });
+                
+                console.log(`🎯 批量调整完成: ${updates.length}个热区`);
+            }
+        } else {
+            // 单个操作：原有逻辑
+            // 检查时间是否真的改变了
+            const timeChanged = 
+                this.dragStartTime.startTime !== hotspot.startTime ||
+                this.dragStartTime.endTime !== hotspot.endTime;
+            
+            if (timeChanged) {
+                // 创建命令并添加到历史记录
+                const command = new UpdateTimeCommand(
+                    this.scene,
+                    hotspot.id,
+                    this.dragStartTime,
+                    {
+                        startTime: hotspot.startTime,
+                        endTime: hotspot.endTime
+                    }
+                );
+                
+                // 注意：不调用 execute()，因为时间已经在拖拽过程中更新了
+                // 直接添加到历史记录
+                this.scene.commandManager.history.push(command);
+                
+                // 清空重做栈
+                this.scene.commandManager.redoStack = [];
+                
+                // 发送历史变化事件
+                this.scene.events.emit('history:changed', {
+                    canUndo: this.scene.commandManager.canUndo(),
+                    canRedo: this.scene.commandManager.canRedo()
+                });
+            }
         }
         
         this.isDragging = false;
         this.dragTarget = null;
         this.dragStartTime = null;
         this.dragStartX = null;
+        this.batchOriginalTimes = null;
         
         // 清除吸附状态
         if (this.timeline.snapController) {
             this.timeline.snapController.clearSnap();
             this.timeline.render();
         }
+    }
+    
+    /**
+     * 获取热区的原始时间（拖拽开始时）
+     * @param {string} hotspotId - 热区ID
+     * @returns {object} 原始时间 {startTime, endTime}
+     */
+    getOriginalTime(hotspotId) {
+        // 如果是主拖拽目标，使用保存的时间
+        if (this.dragTarget && this.dragTarget.hotspot.id === hotspotId) {
+            return this.dragStartTime;
+        }
+        
+        // 否则从批量原始时间中获取
+        if (!this.batchOriginalTimes) {
+            this.batchOriginalTimes = new Map();
+        }
+        
+        if (!this.batchOriginalTimes.has(hotspotId)) {
+            // 如果没有保存，从当前状态获取（不应该发生）
+            const hotspots = this.scene.registry.get('hotspots') || [];
+            const config = hotspots.find(h => h.id === hotspotId);
+            if (config) {
+                return {
+                    startTime: config.startTime,
+                    endTime: config.endTime
+                };
+            }
+        }
+        
+        return this.batchOriginalTimes.get(hotspotId);
     }
     
     /**

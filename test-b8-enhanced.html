@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B8增强版测试 - 方向键微调时间</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+            font-size: 28px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+        }
+        
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-top: 0;
+            font-size: 20px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(56, 239, 125, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 242, 254, 0.4);
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-list li::before {
+            content: '✓';
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .optimization-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .optimization-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .optimization-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .optimization-list li::before {
+            content: '🚀';
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .shortcut-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .shortcut-table th,
+        .shortcut-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .shortcut-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .shortcut-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .key {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #333;
+            color: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .note strong {
+            color: #856404;
+        }
+        
+        .console-hint {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 B8增强版测试 - 方向键微调时间</h1>
+        
+        <div class="section">
+            <h2>📋 测试说明</h2>
+            <p>本页面用于测试B8功能的增强版实现，包括磁性吸附集成、性能优化等新特性。</p>
+            <div class="note">
+                <strong>注意：</strong>请先在主编辑器中加载视频和热区，然后打开浏览器控制台查看测试结果。
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🧪 快速测试</h2>
+            <div class="button-group">
+                <button class="btn-primary" onclick="runFullTest()">完整测试</button>
+                <button class="btn-success" onclick="runPerformanceTest()">性能测试</button>
+                <button class="btn-info" onclick="runBasicTest()">基础测试</button>
+                <button class="btn-warning" onclick="showInfo()">显示信息</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>✨ 新增功能</h2>
+            <ul class="feature-list">
+                <li>磁性吸附集成 - 调整时自动吸附到关键点</li>
+                <li>批量操作性能优化 - 更快的批量调整</li>
+                <li>反馈增强 - 显示磁性吸附状态</li>
+                <li>信息获取API - 查询当前调整状态</li>
+                <li>预览模式支持 - 可视化调整效果</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>🚀 优化点</h2>
+            <ul class="optimization-list">
+                <li>集成B5磁性吸附 - 方向键调整时自动吸附</li>
+                <li>性能优化 - 批量操作减少重复计算</li>
+                <li>代码优化 - 移除未使用变量</li>
+                <li>反馈优化 - 显示吸附状态图标</li>
+                <li>API扩展 - 提供getAdjustInfo()方法</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>⌨️ 快捷键说明</h2>
+            <table class="shortcut-table">
+                <thead>
+                    <tr>
+                        <th>快捷键</th>
+                        <th>功能</th>
+                        <th>步长</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="key">←</span> <span class="key">→</span></td>
+                        <td>整体移动（保持时长）</td>
+                        <td>0.1s</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">Alt</span> + <span class="key">←</span> <span class="key">→</span></td>
+                        <td>调整开始时间</td>
+                        <td>0.1s</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">Shift</span> + <span class="key">←</span> <span class="key">→</span></td>
+                        <td>调整结束时间</td>
+                        <td>0.1s</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">↑</span> <span class="key">↓</span></td>
+                        <td>调整持续时间</td>
+                        <td>0.1s</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">Ctrl</span> + 方向键</td>
+                        <td>正常调整</td>
+                        <td>1.0s</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">Ctrl</span> + <span class="key">Shift</span> + 方向键</td>
+                        <td>粗调整</td>
+                        <td>10.0s</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">S</span></td>
+                        <td>切换磁性吸附</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>💻 控制台命令</h2>
+            <div class="console-hint">
+                // 完整增强测试<br>
+                testB8Enhanced.full()<br>
+                <br>
+                // 性能对比测试<br>
+                testB8Enhanced.performance()<br>
+                <br>
+                // 获取调整信息<br>
+                timelinePanel.fineAdjustController.getAdjustInfo()<br>
+                <br>
+                // 基础测试（原版）<br>
+                testB8.full()
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📊 测试覆盖</h2>
+            <ul class="feature-list">
+                <li>磁性吸附集成测试</li>
+                <li>批量操作性能测试（1/5/10/20个热区）</li>
+                <li>信息获取API测试</li>
+                <li>步长切换测试（0.1s/1s/10s）</li>
+                <li>启用/禁用功能测试</li>
+                <li>边界条件压力测试</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        function runFullTest() {
+            console.clear();
+            console.log('%c开始完整增强测试...', 'color: #667eea; font-size: 16px; font-weight: bold;');
+            
+            if (typeof testB8Enhanced !== 'undefined') {
+                testB8Enhanced.full();
+            } else {
+                console.error('❌ 测试脚本未加载，请先在主编辑器中加载 TEST_B8_ENHANCED.js');
+            }
+        }
+        
+        function runPerformanceTest() {
+            console.clear();
+            console.log('%c开始性能测试...', 'color: #11998e; font-size: 16px; font-weight: bold;');
+            
+            if (typeof testB8Enhanced !== 'undefined') {
+                testB8Enhanced.performance();
+            } else {
+                console.error('❌ 测试脚本未加载');
+            }
+        }
+        
+        function runBasicTest() {
+            console.clear();
+            console.log('%c开始基础测试...', 'color: #4facfe; font-size: 16px; font-weight: bold;');
+            
+            if (typeof testB8 !== 'undefined') {
+                testB8.full();
+            } else {
+                console.error('❌ 基础测试脚本未加载，请先在主编辑器中加载 TEST_B8.js');
+            }
+        }
+        
+        function showInfo() {
+            console.clear();
+            console.log('%c当前调整信息', 'color: #f5576c; font-size: 16px; font-weight: bold;');
+            
+            if (typeof timelinePanel !== 'undefined' && timelinePanel.fineAdjustController) {
+                const info = timelinePanel.fineAdjustController.getAdjustInfo();
+                console.table(info);
+                console.log('%c✓ 信息获取成功', 'color: #4CAF50; font-weight: bold;');
+            } else {
+                console.error('❌ 控制器未初始化');
+            }
+        }
+        
+        // 页面加载提示
+        console.log('%c╔════════════════════════════════════════════════════════╗', 'color: #667eea; font-weight: bold;');
+        console.log('%c║       B8增强版测试页面已加载                           ║', 'color: #667eea; font-weight: bold;');
+        console.log('%c╚════════════════════════════════════════════════════════╝', 'color: #667eea; font-weight: bold;');
+        console.log('%c点击页面按钮或使用控制台命令进行测试', 'color: #666; font-style: italic;');
+    </script>
+</body>
+</html>

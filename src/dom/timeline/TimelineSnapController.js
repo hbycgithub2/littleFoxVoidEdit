@@ -25,6 +25,7 @@ export default class TimelineSnapController {
         // 当前吸附状态
         this.currentSnapLine = null; // 当前吸附线位置
         this.currentSnapType = null; // 当前吸附类型
+        this.currentSnapInfo = null; // 当前吸附信息（包含详细数据）
     }
     
     /**
@@ -37,6 +38,15 @@ export default class TimelineSnapController {
         this.scene.events.emit('timeline:snap:toggled', {
             enabled: this.enabled
         });
+        
+        // 显示Toast提示
+        this.scene.events.emit('ui:showToast', {
+            message: this.enabled ? '✓ 磁性吸附已启用' : '✗ 磁性吸附已禁用',
+            duration: 2000,
+            color: this.enabled ? '#4CAF50' : '#999999'
+        });
+        
+        console.log(`🧲 磁性吸附: ${this.enabled ? '启用' : '禁用'}`);
         
         return this.enabled;
     }
@@ -55,7 +65,7 @@ export default class TimelineSnapController {
     }
     
     /**
-     * 计算吸附时间
+     * 计算吸附时间（优化版 - 支持优先级和磁性强度）
      * @param {number} time - 原始时间（秒）
      * @param {string} draggedHotspotId - 正在拖拽的热区 ID（避免吸附到自己）
      * @returns {number} 吸附后的时间
@@ -64,15 +74,76 @@ export default class TimelineSnapController {
         if (!this.enabled) {
             this.currentSnapLine = null;
             this.currentSnapType = null;
+            this.currentSnapInfo = null;
             return time;
         }
         
         const snapPoints = this.calculateSnapPoints(draggedHotspotId);
         const timeInPixels = time * this.timeline.scale;
         
-        // 查找最近的吸附点
+        // 按优先级分组吸附点
+        const priorityGroups = {
+            high: [],    // 热区边缘、标记
+            medium: [],  // 入点/出点
+            low: []      // 网格
+        };
+        
+        snapPoints.forEach(snap => {
+            if (snap.type.startsWith('hotspot-') || snap.type === 'marker') {
+                priorityGroups.high.push(snap);
+            } else if (snap.type === 'in-point' || snap.type === 'out-point') {
+                priorityGroups.medium.push(snap);
+            } else {
+                priorityGroups.low.push(snap);
+            }
+        });
+        
+        // 优先查找高优先级吸附点
+        let closestSnap = this.findClosestSnap(timeInPixels, priorityGroups.high, this.snapThreshold);
+        
+        // 如果没找到，查找中优先级
+        if (!closestSnap) {
+            closestSnap = this.findClosestSnap(timeInPixels, priorityGroups.medium, this.snapThreshold);
+        }
+        
+        // 如果还没找到，查找低优先级（网格）
+        if (!closestSnap) {
+            closestSnap = this.findClosestSnap(timeInPixels, priorityGroups.low, this.snapThreshold * 0.8);
+        }
+        
+        if (closestSnap) {
+            // 吸附到最近的点
+            this.currentSnapLine = closestSnap.x;
+            this.currentSnapType = closestSnap.type;
+            this.currentSnapInfo = closestSnap;
+            
+            // 发送吸附事件（遵循 Phaser 标准）
+            this.scene.events.emit('timeline:snap:active', {
+                time: closestSnap.time,
+                type: closestSnap.type,
+                info: closestSnap
+            });
+            
+            return closestSnap.x / this.timeline.scale;
+        } else {
+            // 没有吸附点
+            this.currentSnapLine = null;
+            this.currentSnapType = null;
+            this.currentSnapInfo = null;
+            return time;
+        }
+    }
+    
+    /**
+     * 查找最近的吸附点
+     * @param {number} timeInPixels - 时间（像素）
+     * @param {Array} snapPoints - 吸附点数组
+     * @param {number} threshold - 吸附阈值
+     * @returns {object|null} 最近的吸附点或 null
+     */
+    findClosestSnap(timeInPixels, snapPoints, threshold) {
         let closestSnap = null;
-        let minDistance = this.snapThreshold;
+        let minDistance = threshold;
         
         snapPoints.forEach(snap => {
             const distance = Math.abs(timeInPixels - snap.x);
@@ -82,17 +153,7 @@ export default class TimelineSnapController {
             }
         });
         
-        if (closestSnap) {
-            // 吸附到最近的点
-            this.currentSnapLine = closestSnap.x;
-            this.currentSnapType = closestSnap.type;
-            return closestSnap.x / this.timeline.scale;
-        } else {
-            // 没有吸附点
-            this.currentSnapLine = null;
-            this.currentSnapType = null;
-            return time;
-        }
+        return closestSnap;
     }
     
     /**
@@ -250,7 +311,7 @@ export default class TimelineSnapController {
     }
     
     /**
-     * 绘制吸附线
+     * 绘制吸附线（优化版 - 更好的视觉效果）
      * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
      */
     drawSnapLine(ctx) {
@@ -258,48 +319,112 @@ export default class TimelineSnapController {
         
         const canvasHeight = this.timeline.canvas.height;
         
-        // 根据吸附类型选择颜色
-        let color;
+        // 根据吸附类型选择颜色和样式
+        let color, label, showLabel = true;
         switch (this.currentSnapType) {
             case 'grid':
                 color = '#ffaa00'; // 橙色
+                label = `${(this.currentSnapLine / this.timeline.scale).toFixed(1)}s`;
                 break;
             case 'hotspot-start':
+                color = '#00ffff'; // 青色
+                label = '开始';
+                break;
             case 'hotspot-end':
                 color = '#00ffff'; // 青色
+                label = '结束';
                 break;
             case 'marker':
                 color = '#4488ff'; // 蓝色
+                label = '标记';
                 break;
             case 'in-point':
                 color = '#00ff00'; // 绿色
+                label = '入点';
                 break;
             case 'out-point':
                 color = '#ff6666'; // 红色
+                label = '出点';
                 break;
             default:
                 color = '#ffffff'; // 白色
+                label = '';
+                showLabel = false;
         }
         
-        // 绘制吸附线
+        // 绘制吸附线（虚线）
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
-        ctx.setLineDash([4, 4]);
-        ctx.globalAlpha = 0.8;
+        ctx.setLineDash([6, 3]);
+        ctx.globalAlpha = 0.9;
         
         ctx.beginPath();
-        ctx.moveTo(this.currentSnapLine, 0);
+        ctx.moveTo(this.currentSnapLine, 30);
         ctx.lineTo(this.currentSnapLine, canvasHeight);
         ctx.stroke();
         
         ctx.setLineDash([]);
-        ctx.globalAlpha = 1.0;
         
-        // 绘制顶部指示器
+        // 绘制顶部指示器（实心圆）
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(this.currentSnapLine, 15, 4, 0, Math.PI * 2);
+        ctx.arc(this.currentSnapLine, 15, 5, 0, Math.PI * 2);
         ctx.fill();
+        
+        // 绘制外圈（白色边框）
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.currentSnapLine, 15, 5, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // 绘制标签（如果有）
+        if (showLabel && label) {
+            ctx.fillStyle = color;
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            // 绘制背景
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(
+                this.currentSnapLine - textWidth / 2 - 4,
+                2,
+                textWidth + 8,
+                14
+            );
+            
+            // 绘制文字
+            ctx.fillStyle = color;
+            ctx.fillText(label, this.currentSnapLine, 14);
+        }
+        
+        // 绘制底部时间提示（对于热区吸附）
+        if (this.currentSnapInfo && (this.currentSnapType === 'hotspot-start' || this.currentSnapType === 'hotspot-end')) {
+            const time = this.currentSnapInfo.time.toFixed(1);
+            ctx.fillStyle = color;
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            
+            // 绘制背景
+            const timeText = `${time}s`;
+            const timeWidth = ctx.measureText(timeText).width;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(
+                this.currentSnapLine - timeWidth / 2 - 3,
+                canvasHeight - 16,
+                timeWidth + 6,
+                12
+            );
+            
+            // 绘制文字
+            ctx.fillStyle = color;
+            ctx.fillText(timeText, this.currentSnapLine, canvasHeight - 15);
+        }
+        
+        ctx.globalAlpha = 1.0;
     }
     
     /**
@@ -308,6 +433,7 @@ export default class TimelineSnapController {
     clearSnap() {
         this.currentSnapLine = null;
         this.currentSnapType = null;
+        this.currentSnapInfo = null;
     }
     
     /**

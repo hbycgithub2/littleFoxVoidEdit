@@ -198,6 +198,85 @@ class UpdateTimeCommand extends Command {
 }
 
 /**
+ * 批量更新热区时间命令（用于批量拖拽 - B6优化）
+ */
+class BatchUpdateTimeCommand extends Command {
+    constructor(scene, updates) {
+        super();
+        this.scene = scene;
+        // updates: [{ hotspotId, oldTime, newTime }, ...]
+        this.updates = updates.map(u => ({
+            hotspotId: u.hotspotId,
+            oldTime: { 
+                startTime: u.oldTime.startTime, 
+                endTime: u.oldTime.endTime 
+            },
+            newTime: { 
+                startTime: u.newTime.startTime, 
+                endTime: u.newTime.endTime 
+            }
+        }));
+    }
+    
+    execute() {
+        this.updates.forEach(update => {
+            const hotspot = this.scene.hotspots.find(h => h.config.id === update.hotspotId);
+            if (hotspot) {
+                hotspot.config.startTime = update.newTime.startTime;
+                hotspot.config.endTime = update.newTime.endTime;
+            }
+        });
+        this.scene.syncToRegistry();
+    }
+    
+    undo() {
+        this.updates.forEach(update => {
+            const hotspot = this.scene.hotspots.find(h => h.config.id === update.hotspotId);
+            if (hotspot) {
+                hotspot.config.startTime = update.oldTime.startTime;
+                hotspot.config.endTime = update.oldTime.endTime;
+            }
+        });
+        this.scene.syncToRegistry();
+    }
+}
+
+/**
+ * 批量命令（用于组合多个命令 - B7优化）
+ */
+class BatchCommand extends Command {
+    constructor(commands) {
+        super();
+        this.commands = commands || [];
+    }
+    
+    execute() {
+        this.commands.forEach(cmd => cmd.execute());
+    }
+    
+    undo() {
+        // 反向撤销
+        for (let i = this.commands.length - 1; i >= 0; i--) {
+            this.commands[i].undo();
+        }
+    }
+    
+    /**
+     * 添加命令到批量命令
+     */
+    addCommand(command) {
+        this.commands.push(command);
+    }
+    
+    /**
+     * 获取命令数量
+     */
+    getCommandCount() {
+        return this.commands.length;
+    }
+}
+
+/**
  * 命令管理器
  */
 export default class CommandManager {
@@ -281,4 +360,4 @@ export default class CommandManager {
 }
 
 // 导出命令类（供外部使用）
-export { AddHotspotCommand, DeleteHotspotCommand, MoveHotspotCommand, ResizeHotspotCommand, ModifyHotspotCommand, PasteHotspotsCommand, UpdateTimeCommand };
+export { AddHotspotCommand, DeleteHotspotCommand, MoveHotspotCommand, ResizeHotspotCommand, ModifyHotspotCommand, PasteHotspotsCommand, UpdateTimeCommand, BatchUpdateTimeCommand, BatchCommand };

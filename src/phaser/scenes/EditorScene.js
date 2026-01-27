@@ -36,6 +36,11 @@ import HistoryVisualHelper from '../../utils/HistoryVisualHelper.js';
 import ClipboardHelper from '../../utils/ClipboardHelper.js';
 import LayerPanelHelper from '../../utils/LayerPanelHelper.js';
 import StylePanelHelper from '../../utils/StylePanelHelper.js';
+import TimelineQuickTimeHelper from '../../utils/TimelineQuickTimeHelper.js';
+import QuickFeedbackHelper from '../../utils/QuickFeedbackHelper.js';
+import QuickKeyHintHelper from '../../utils/QuickKeyHintHelper.js';
+import TimelinePerformanceMonitor from '../../utils/TimelinePerformanceMonitor.js';
+import TimelineOptimizationHelper from '../../utils/TimelineOptimizationHelper.js';
 
 export default class EditorScene extends Phaser.Scene {
     constructor() {
@@ -100,7 +105,23 @@ export default class EditorScene extends Phaser.Scene {
         // 初始化样式面板工具（遵循 Phaser 官方标准）
         this.stylePanelHelper = new StylePanelHelper(this);
         
+        // 初始化快捷键时间设置工具（遵循 Phaser 官方标准）
+        this.timelineQuickTimeHelper = new TimelineQuickTimeHelper(this);
+        
+        // 初始化快速反馈工具（遵循 Phaser 官方标准）
+        this.quickFeedbackHelper = new QuickFeedbackHelper(this);
+        
+        // 初始化快捷键提示工具（遵循 Phaser 官方标准）
+        this.quickKeyHintHelper = new QuickKeyHintHelper(this);
+        
+        // 初始化时间轴性能监控工具（遵循 Phaser 官方标准）
+        this.timelinePerformanceMonitor = new TimelinePerformanceMonitor(this);
+        
+        // 初始化时间轴优化辅助工具（遵循 Phaser 官方标准）
+        this.timelineOptimizationHelper = new TimelineOptimizationHelper(this);
+        
         // this.performanceMonitor.enable(); // 开发时启用
+        // this.timelinePerformanceMonitor.enable(); // 开发时启用
         
         // 初始化容器（遵循 Phaser 官方标准）
         this.hotspotContainer = this.add.container(0, 0);
@@ -139,6 +160,16 @@ export default class EditorScene extends Phaser.Scene {
         // 监听热区点击
         this.events.on('hotspot:clicked', (hotspot, multiSelect) => {
             this.selectionManager.select(hotspot, multiSelect);
+        });
+        
+        // 监听UI Toast提示事件
+        this.events.on('ui:showToast', (data) => {
+            if (window.toast) {
+                const type = data.color === '#4CAF50' ? 'success' : 
+                            data.color === '#2196F3' ? 'info' : 
+                            data.color === '#FF6B6B' ? 'error' : 'info';
+                window.toast.show(data.message, type, data.duration || 2000);
+            }
         });
         
         // 监听热区移动（用于撤销/重做）
@@ -584,6 +615,26 @@ export default class EditorScene extends Phaser.Scene {
         
         if (this.stylePanelHelper) {
             this.stylePanelHelper.destroy();
+        }
+        
+        if (this.timelineQuickTimeHelper) {
+            this.timelineQuickTimeHelper.destroy();
+        }
+        
+        if (this.quickFeedbackHelper) {
+            this.quickFeedbackHelper.destroy();
+        }
+        
+        if (this.quickKeyHintHelper) {
+            this.quickKeyHintHelper.destroy();
+        }
+        
+        if (this.timelinePerformanceMonitor) {
+            this.timelinePerformanceMonitor.destroy();
+        }
+        
+        if (this.timelineOptimizationHelper) {
+            this.timelineOptimizationHelper.destroy();
         }
         
         console.log('EditorScene shutdown - 资源已清理');

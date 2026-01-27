@@ -11,6 +11,7 @@ import DrawingAnimationHelper from '../../utils/DrawingAnimationHelper.js';
 import DrawingTemplateManager from '../../utils/DrawingTemplateManager.js';
 import DrawingEnhancementManager from '../../utils/DrawingEnhancementManager.js';
 import DrawingSoundManager from '../../utils/DrawingSoundManager.js';
+import DrawingTimePresetHelper from '../../utils/DrawingTimePresetHelper.js';
 
 export default class DrawingManager {
     constructor(scene) {
@@ -40,6 +41,7 @@ export default class DrawingManager {
         this.templateManager = new DrawingTemplateManager(scene);
         this.enhancementManager = new DrawingEnhancementManager(scene);
         this.soundManager = new DrawingSoundManager(scene);
+        this.timePresetHelper = new DrawingTimePresetHelper(scene);
         
         // 尺寸文本（遵循 Phaser 官方标准）
         this.sizeText = scene.add.text(0, 0, '', {
@@ -79,7 +81,13 @@ export default class DrawingManager {
         // 启用辅助线
         this.guideHelper.enable();
         
-        console.log(`🎨 开始绘制 ${mode}，起点: (${snapped.x.toFixed(0)}, ${snapped.y.toFixed(0)})`);
+        // 显示当前预设时长（如果不是默认值）
+        const preset = this.timePresetHelper.getPreset();
+        if (preset !== 5) {
+            this.timePresetHelper.showPreset();
+        }
+        
+        console.log(`🎨 开始绘制 ${mode}，起点: (${snapped.x.toFixed(0)}, ${snapped.y.toFixed(0)})，时长: ${preset}秒`);
     }
     
     /**
@@ -204,29 +212,32 @@ export default class DrawingManager {
         let text = '';
         let subText = '';
         
+        // 获取当前预设时长
+        const duration = this.timePresetHelper.getPreset();
+        
         switch (this.drawMode) {
             case 'circle':
                 const radius = Math.sqrt(width * width + height * height);
                 text = `半径: ${radius.toFixed(0)}px`;
-                // 显示角度
+                // 显示角度和时长
                 const angle = Math.atan2(currentY - startY, currentX - startX) * 180 / Math.PI;
-                subText = `角度: ${angle.toFixed(0)}°`;
+                subText = `角度: ${angle.toFixed(0)}° | 时长: ${duration}秒`;
                 break;
             case 'rect':
                 text = `${width.toFixed(0)} × ${height.toFixed(0)}px`;
                 if (shiftKey) text += ' (正方形)';
                 if (altKey) text += ' (角度约束)';
-                // 显示宽高比
+                // 显示宽高比和时长
                 const ratio = width > 0 && height > 0 ? (width / height).toFixed(2) : '0';
-                subText = `比例: ${ratio}:1`;
+                subText = `比例: ${ratio}:1 | 时长: ${duration}秒`;
                 break;
             case 'ellipse':
                 text = `${width.toFixed(0)} × ${height.toFixed(0)}px`;
                 if (shiftKey) text += ' (圆形)';
                 if (altKey) text += ' (角度约束)';
-                // 显示宽高比
+                // 显示宽高比和时长
                 const ellipseRatio = width > 0 && height > 0 ? (width / height).toFixed(2) : '0';
-                subText = `比例: ${ellipseRatio}:1`;
+                subText = `比例: ${ellipseRatio}:1 | 时长: ${duration}秒`;
                 break;
         }
         
@@ -333,6 +344,9 @@ export default class DrawingManager {
     createHotspotConfig(startX, startY, width, height) {
         const videoTime = this.scene.registry.get('videoTime') || 0;
         
+        // 使用预设时长（如果有）
+        const duration = this.timePresetHelper.getPreset();
+        
         const config = {
             id: Date.now(),
             shape: this.drawMode,
@@ -340,13 +354,14 @@ export default class DrawingManager {
             strokeWidth: 3,
             word: '',
             startTime: videoTime,
-            endTime: videoTime + 5
+            endTime: videoTime + duration  // 使用预设时长
         };
         
         console.log('🎨 创建热区配置:', {
             shape: config.shape,
             startTime: config.startTime,
             endTime: config.endTime,
+            duration: duration,
             currentVideoTime: videoTime
         });
         
@@ -492,6 +507,11 @@ export default class DrawingManager {
         if (this.soundManager) {
             this.soundManager.destroy();
             this.soundManager = null;
+        }
+        
+        if (this.timePresetHelper) {
+            this.timePresetHelper.destroy();
+            this.timePresetHelper = null;
         }
     }
 }

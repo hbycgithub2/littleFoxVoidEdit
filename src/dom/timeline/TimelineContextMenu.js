@@ -114,7 +114,9 @@ export default class TimelineContextMenu {
             { label: '跳转到开始', icon: '⏩', action: 'jumpToStart', shortcut: '' },
             { label: '跳转到结束', icon: '⏭️', action: 'jumpToEnd', shortcut: '' },
             { label: '播放此片段', icon: '🔁', action: 'playSegment', shortcut: '' },
-            { label: '复制时间范围', icon: '📋', action: 'copyTimeRange', shortcut: '' },
+            { type: 'separator' },
+            { label: '复制时间范围', icon: '📋', action: 'copyTimeRange', shortcut: 'Ctrl+Shift+C' },
+            { label: '粘贴时间范围', icon: '📌', action: 'pasteTimeRange', shortcut: 'Ctrl+Shift+V' },
             { type: 'separator' },
             { label: '属性', icon: '⚙️', action: 'properties', shortcut: '' }
         ];
@@ -242,6 +244,9 @@ export default class TimelineContextMenu {
                 break;
             case 'copyTimeRange':
                 this.handleCopyTimeRange();
+                break;
+            case 'pasteTimeRange':
+                this.handlePasteTimeRange();
                 break;
             case 'properties':
                 this.handleProperties();
@@ -517,61 +522,51 @@ export default class TimelineContextMenu {
     handleCopyTimeRange() {
         if (!this.targetHotspot) return;
         
-        const startTime = this.targetHotspot.startTime.toFixed(1);
-        const endTime = this.targetHotspot.endTime.toFixed(1);
-        const duration = (this.targetHotspot.endTime - this.targetHotspot.startTime).toFixed(1);
-        const text = `开始: ${startTime}s | 结束: ${endTime}s | 时长: ${duration}s`;
-        
-        // 复制到系统剪贴板
-        if (navigator.clipboard && navigator.clipboard.writeText) {
+        // 使用 TimelineRangeCopyController 复制时间范围
+        if (this.timeline.rangeCopyController) {
+            this.timeline.rangeCopyController.copySingleTimeRange(this.targetHotspot);
+        } else {
+            // 降级方案：直接复制文本
+            const startTime = this.targetHotspot.startTime.toFixed(1);
+            const endTime = this.targetHotspot.endTime.toFixed(1);
+            const duration = (this.targetHotspot.endTime - this.targetHotspot.startTime).toFixed(1);
+            const text = `开始: ${startTime}s | 结束: ${endTime}s | 时长: ${duration}s`;
+            
             navigator.clipboard.writeText(text).then(() => {
-                // 发送事件
-                this.scene.events.emit('timeline:contextmenu:copyTimeRange', {
-                    hotspotId: this.targetHotspot.id,
-                    text: text
+                this.scene.events.emit('ui:showToast', {
+                    message: '✓ 时间范围已复制',
+                    duration: 2000,
+                    color: '#4CAF50'
                 });
-                
-                // Toast 提示
-                if (window.toast) {
-                    window.toast.success('时间范围已复制');
-                }
             }).catch(err => {
                 console.error('复制失败:', err);
-                if (window.toast) {
-                    window.toast.error('复制失败');
-                }
             });
-        } else {
-            // 降级方案：使用旧的 execCommand
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            
-            try {
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                
-                // 发送事件
-                this.scene.events.emit('timeline:contextmenu:copyTimeRange', {
-                    hotspotId: this.targetHotspot.id,
-                    text: text
-                });
-                
-                // Toast 提示
-                if (window.toast) {
-                    window.toast.success('时间范围已复制');
-                }
-            } catch (err) {
-                console.error('复制失败:', err);
-                document.body.removeChild(textarea);
-                if (window.toast) {
-                    window.toast.error('复制失败');
-                }
-            }
         }
+        
+        // 发送事件
+        this.scene.events.emit('timeline:contextmenu:copyTimeRange', {
+            hotspotId: this.targetHotspot.id
+        });
+    }
+    
+    /**
+     * 粘贴时间范围（B7功能）
+     */
+    handlePasteTimeRange() {
+        if (!this.timeline.rangeCopyController) {
+            this.scene.events.emit('ui:showToast', {
+                message: '⚠ 时间范围复制功能未初始化',
+                duration: 2000,
+                color: '#FF9800'
+            });
+            return;
+        }
+        
+        // 粘贴到当前视频时间
+        this.timeline.rangeCopyController.pasteTimeRanges();
+        
+        // 发送事件
+        this.scene.events.emit('timeline:contextmenu:pasteTimeRange');
     }
     
     /**

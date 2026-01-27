@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A4、B5、B6 功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .section h2 {
+            color: #2196F3;
+            margin-top: 0;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+        }
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+        .btn-warning {
+            background: #FF9800;
+        }
+        .btn-warning:hover {
+            background: #e68900;
+        }
+        .btn-danger {
+            background: #F44336;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        .info {
+            background: #1e3a5f;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #1e4620;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .warning {
+            background: #4a3a1e;
+            border-left: 4px solid #FF9800;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #4CAF50;
+        }
+        .console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #444;
+        }
+        .feature-list li:before {
+            content: "✓ ";
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 A4、B5、B6 功能测试页面</h1>
+        
+        <div class="info">
+            <strong>📋 测试说明：</strong>
+            <p>本页面用于测试和验证A4（时间轴直接创建）、B5（磁性吸附）、B6（批量时间调整）功能。</p>
+            <p>请先在下方iframe中加载主应用，然后使用控制台运行测试脚本。</p>
+        </div>
+        
+        <!-- 主应用iframe -->
+        <div class="section">
+            <h2>📺 主应用</h2>
+            <iframe id="appFrame" src="index.html"></iframe>
+        </div>
+        
+        <!-- 快速测试 -->
+        <div class="section">
+            <h2>⚡ 快速测试</h2>
+            <p>点击下方按钮快速测试各项功能：</p>
+            <button class="btn" onclick="runQuickTest()">🚀 快速测试</button>
+            <button class="btn btn-secondary" onclick="runFullTest()">📊 完整测试</button>
+            <button class="btn btn-warning" onclick="runBenchmark()">⏱️ 性能测试</button>
+            <button class="btn btn-danger" onclick="runAnalysis()">🔍 优化分析</button>
+        </div>
+        
+        <!-- 功能说明 -->
+        <div class="section">
+            <h2>📖 功能说明</h2>
+            
+            <h3 style="color: #2196F3;">A4: 时间轴直接创建</h3>
+            <ul class="feature-list">
+                <li>按住 <code>Alt</code> 键在时间轴上拖拽创建热区</li>
+                <li>实时显示时长预览</li>
+                <li>最小时长0.5秒，自动检查和提示</li>
+                <li>创建后自动高亮（集成A3）</li>
+                <li>支持撤销/重做</li>
+            </ul>
+            
+            <h3 style="color: #4CAF50;">B5: 磁性吸附</h3>
+            <ul class="feature-list">
+                <li>按 <code>S</code> 键切换吸附开关</li>
+                <li>三级优先级：热区边缘 > 入出点 > 网格</li>
+                <li>实时视觉反馈（颜色编码）</li>
+                <li>支持多种吸附类型</li>
+                <li>可配置吸附阈值</li>
+            </ul>
+            
+            <h3 style="color: #FF9800;">B6: 批量时间调整</h3>
+            <ul class="feature-list">
+                <li>多选热区后拖拽时间条</li>
+                <li>支持批量调整开始时间、结束时间、整体移动</li>
+                <li>保持相对位置和持续时间</li>
+                <li>智能边界检查</li>
+                <li>单次撤销/重做操作</li>
+            </ul>
+        </div>
+        
+        <!-- 测试命令 -->
+        <div class="section">
+            <h2>💻 控制台命令</h2>
+            <div class="info">
+                <p>在浏览器控制台（F12）中运行以下命令：</p>
+                <pre style="background: #000; padding: 10px; border-radius: 4px; overflow-x: auto;">
+<code>// 获取iframe中的window对象
+const appWindow = document.getElementById('appFrame').contentWindow;
+
+// 快速测试
+appWindow.testA4B5B6.quick()
+
+// 完整测试
+appWindow.testA4B5B6.runAll()
+
+// 单独测试
+appWindow.testA4B5B6.a4()        // 测试A4
+appWindow.testA4B5B6.b5()        // 测试B5
+appWindow.testA4B5B6.b6()        // 测试B6
+appWindow.testA4B5B6.integration()  // 集成测试
+appWindow.testA4B5B6.performance()  // 性能测试
+
+// 优化分析
+appWindow.optimizationAnalysis.analyze()    // 完整分析
+appWindow.optimizationAnalysis.benchmark()  // 性能基准
+
+// 启用性能监控
+const scene = appWindow.game.scene.getScene('EditorScene');
+scene.timelinePerformanceMonitor.enable()
+scene.timelinePerformanceMonitor.printReport()
+</code></pre>
+            </div>
+        </div>
+        
+        <!-- 预期结果 -->
+        <div class="section">
+            <h2>✅ 预期结果</h2>
+            <div class="success">
+                <h3>性能指标：</h3>
+                <ul>
+                    <li>A4创建耗时 < 50ms</li>
+                    <li>B5吸附耗时 < 1ms</li>
+                    <li>B6批量操作耗时 < 100ms（20个热区）</li>
+                </ul>
+                
+                <h3>功能完整性：</h3>
+                <ul>
+                    <li>所有核心功能正常工作</li>
+                    <li>撤销/重做功能正常</li>
+                    <li>视觉反馈清晰</li>
+                    <li>无明显bug</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 已知问题 -->
+        <div class="section">
+            <h2>⚠️ 注意事项</h2>
+            <div class="warning">
+                <ul>
+                    <li>测试前请确保视频已加载</li>
+                    <li>测试会创建临时热区，测试后会自动清理</li>
+                    <li>性能测试可能需要几秒钟</li>
+                    <li>建议在Chrome或Edge浏览器中测试</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 等待iframe加载完成
+        const appFrame = document.getElementById('appFrame');
+        
+        appFrame.onload = function() {
+            console.log('✅ 主应用已加载');
+            
+            // 等待一段时间确保所有脚本都加载完成
+            setTimeout(() => {
+                const appWindow = appFrame.contentWindow;
+                
+                // 加载测试脚本
+                loadScript(appWindow, 'TEST_A4_B5_B6_COMPLETE.js');
+                loadScript(appWindow, 'OPTIMIZATION_ANALYSIS.js');
+                
+                console.log('✅ 测试脚本已加载');
+                console.log('💡 运行 runQuickTest() 开始快速测试');
+            }, 2000);
+        };
+        
+        function loadScript(targetWindow, src) {
+            const script = targetWindow.document.createElement('script');
+            script.src = src;
+            targetWindow.document.body.appendChild(script);
+        }
+        
+        function runQuickTest() {
+            const appWindow = appFrame.contentWindow;
+            if (appWindow.testA4B5B6) {
+                appWindow.testA4B5B6.quick();
+            } else {
+                alert('测试脚本未加载，请稍后再试');
+            }
+        }
+        
+        function runFullTest() {
+            const appWindow = appFrame.contentWindow;
+            if (appWindow.testA4B5B6) {
+                appWindow.testA4B5B6.runAll();
+            } else {
+                alert('测试脚本未加载，请稍后再试');
+            }
+        }
+        
+        function runBenchmark() {
+            const appWindow = appFrame.contentWindow;
+            if (appWindow.optimizationAnalysis) {
+                appWindow.optimizationAnalysis.benchmark();
+            } else {
+                alert('分析脚本未加载，请稍后再试');
+            }
+        }
+        
+        function runAnalysis() {
+            const appWindow = appFrame.contentWindow;
+            if (appWindow.optimizationAnalysis) {
+                appWindow.optimizationAnalysis.analyze();
+            } else {
+                alert('分析脚本未加载，请稍后再试');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -18,6 +18,10 @@ import TimelineDataController from './timeline/TimelineDataController.js';
 import TimelineWaveformController from './timeline/TimelineWaveformController.js';
 import TimelineMenuHandler from './timeline/TimelineMenuHandler.js';
 import TimelineFramePreviewController from './timeline/TimelineFramePreviewController.js';
+import TimelineHighlightController from './timeline/TimelineHighlightController.js';
+import TimelineDirectCreateController from './timeline/TimelineDirectCreateController.js';
+import TimelineRangeCopyController from './timeline/TimelineRangeCopyController.js';
+import TimelineFineAdjustController from './timeline/TimelineFineAdjustController.js';
 
 export default class TimelinePanel {
     constructor(game) {
@@ -87,6 +91,18 @@ export default class TimelinePanel {
         
         // 初始化视频帧预览控制器
         this.framePreviewController = new TimelineFramePreviewController(this);
+        
+        // 初始化时间条高亮控制器
+        this.highlightController = new TimelineHighlightController(this);
+        
+        // 初始化时间轴直接创建控制器
+        this.directCreateController = new TimelineDirectCreateController(this);
+        
+        // 初始化时间范围复制粘贴控制器
+        this.rangeCopyController = new TimelineRangeCopyController(this);
+        
+        // 初始化时间微调控制器
+        this.fineAdjustController = new TimelineFineAdjustController(this);
         
         this.setupCanvas();
         this.setupEvents();
@@ -166,20 +182,45 @@ export default class TimelinePanel {
      */
     setupKeyboardShortcuts() {
         this.keydownHandler = (e) => {
-            // Delete 键：删除选中的热区
-            if (e.key === 'Delete' && this.selectionController.getSelectionCount() > 0) {
-                e.preventDefault();
-                this.selectionController.deleteSelected();
+            // S 键：切换磁性吸附
+            if (e.key === 's' || e.key === 'S') {
+                // 检查是否在输入框中
+                const activeElement = document.activeElement;
+                const isInputFocused = activeElement && (
+                    activeElement.tagName === 'INPUT' ||
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.isContentEditable
+                );
+                
+                if (!isInputFocused && this.snapController) {
+                    e.preventDefault();
+                    this.snapController.toggle();
+                    this.render();
+                }
             }
             
-            // Escape 键：清空选择或清除区域
+            // Escape 键：取消直接创建或清空选择或清除区域
             if (e.key === 'Escape') {
                 e.preventDefault();
+                
+                // 优先取消直接创建
+                if (this.directCreateController && this.directCreateController.isDragging) {
+                    this.directCreateController.cancel();
+                    return;
+                }
+                
+                // 然后清除区域或选择
                 if (this.rangeController.getRange()) {
                     this.rangeController.clearRange();
                 } else {
                     this.selectionController.clearSelection();
                 }
+            }
+            
+            // Delete 键：删除选中的热区
+            if (e.key === 'Delete' && this.selectionController.getSelectionCount() > 0) {
+                e.preventDefault();
+                this.selectionController.deleteSelected();
             }
             
             // Ctrl+A：全选
@@ -281,6 +322,13 @@ export default class TimelinePanel {
             this.virtualScrollController.restoreScroll(this.ctx);
         }
         
+        // 绘制高亮闪烁效果（在选中高亮之后）
+        if (this.highlightController) {
+            this.virtualScrollController.applyScroll(this.ctx);
+            this.highlightController.drawHighlight(this.ctx);
+            this.virtualScrollController.restoreScroll(this.ctx);
+        }
+        
         // 绘制框选框（在高亮之后绘制）
         if (this.selectionController) {
             this.selectionController.drawBoxSelection(this.ctx);
@@ -314,6 +362,11 @@ export default class TimelinePanel {
         // 绘制点击视觉反馈（最后绘制，确保在最上层）
         if (this.timeScaleController) {
             this.timeScaleController.drawClickFeedback(this.ctx);
+        }
+        
+        // 绘制直接创建预览（最后绘制）
+        if (this.directCreateController) {
+            this.directCreateController.drawPreview(this.ctx);
         }
     }
     
@@ -383,6 +436,11 @@ export default class TimelinePanel {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+        
+        // 优先检测Alt+拖拽创建（最高优先级）
+        if (this.directCreateController.handleMouseDown(x, y, e.altKey)) {
+            return;
+        }
         
         // 检测滚动条点击
         if (this.virtualScrollController.hitTestScrollbar(x, y)) {
@@ -469,6 +527,11 @@ export default class TimelinePanel {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+        
+        // 处理直接创建拖拽（最高优先级）
+        if (this.directCreateController.handleMouseMove(x, y)) {
+            return;
+        }
         
         // 处理滚动条拖拽
         if (this.virtualScrollController.isDraggingScrollbar) {
@@ -571,6 +634,11 @@ export default class TimelinePanel {
     }
     
     onMouseUp() {
+        // 处理直接创建完成（最高优先级）
+        if (this.directCreateController.handleMouseUp()) {
+            return;
+        }
+        
         // 结束滚动条拖拽
         this.virtualScrollController.endDragScrollbar();
         
@@ -792,6 +860,26 @@ export default class TimelinePanel {
         if (this.framePreviewController) {
             this.framePreviewController.destroy();
             this.framePreviewController = null;
+        }
+        
+        if (this.highlightController) {
+            this.highlightController.destroy();
+            this.highlightController = null;
+        }
+        
+        if (this.directCreateController) {
+            this.directCreateController.destroy();
+            this.directCreateController = null;
+        }
+        
+        if (this.rangeCopyController) {
+            this.rangeCopyController.destroy();
+            this.rangeCopyController = null;
+        }
+        
+        if (this.fineAdjustController) {
+            this.fineAdjustController.destroy();
+            this.fineAdjustController = null;
         }
         
         // 移除事件监听
