@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Video Control Test - Phaser 3</title>
+    <script src="lib/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: #0a0a0a; font-family: Arial; overflow: hidden; }
+        #app { display: flex; height: 100vh; }
+        #game { flex: 1; }
+        #panel { width: 350px; background: #000; color: #fff; overflow-y: auto;
+                 border-left: 2px solid #4CAF50; }
+        .section { padding: 15px; border-bottom: 1px solid #222; }
+        h3 { color: #4CAF50; margin: 0 0 10px 0; font-size: 15px; }
+        .btn { background: #4CAF50; color: #fff; border: none; padding: 10px;
+               margin: 5px 0; border-radius: 4px; cursor: pointer; font-size: 12px;
+               width: 100%; transition: all 0.3s; }
+        .btn:hover { background: #45a049; transform: translateY(-1px); }
+        .test { padding: 8px; margin: 5px 0; border-left: 3px solid #4CAF50;
+                background: rgba(76,175,80,0.1); font-size: 11px; }
+        .test.fail { border-left-color: #f44; background: rgba(255,68,68,0.1); }
+        .info { font-size: 11px; color: #888; line-height: 1.6; }
+        kbd { background: #333; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+        .metric { display: flex; justify-content: space-between; padding: 5px 0;
+                  font-size: 12px; border-bottom: 1px solid #222; }
+        .metric-value { color: #4CAF50; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="game"></div>
+        <div id="panel">
+            <div class="section">
+                <h3>🎥 视频控制测试</h3>
+                <p class="info">完全遵循 Phaser 3 官方标准</p>
+            </div>
+            
+            <div class="section">
+                <h3>⌨️ 快捷键</h3>
+                <div class="info">
+                    <kbd>Space</kbd> 播放/暂停<br>
+                    <kbd>←</kbd> 后退5秒<br>
+                    <kbd>→</kbd> 前进5秒<br>
+                    <kbd>M</kbd> 静音/取消静音<br>
+                    <kbd>F</kbd> 全屏
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🎬 视频操作</h3>
+                <button class="btn" onclick="scene.testLoadVideo()">加载测试视频</button>
+                <button class="btn" onclick="scene.testPlayPause()">播放/暂停</button>
+                <button class="btn" onclick="scene.testSeek()">跳转测试</button>
+                <button class="btn" onclick="scene.testSpeed()">速度测试</button>
+                <button class="btn" onclick="scene.testVolume()">音量测试</button>
+            </div>
+            
+            <div class="section">
+                <h3>🔥 热区测试</h3>
+                <button class="btn" onclick="scene.testHotspotSync()">热区时间同步</button>
+                <button class="btn" onclick="scene.testHotspotVisibility()">热区显示/隐藏</button>
+            </div>
+            
+            <div class="section">
+                <h3>🚀 自动测试</h3>
+                <button class="btn" onclick="scene.runFullTest()" 
+                        style="background:#2196F3;">运行完整测试</button>
+            </div>
+            
+            <div class="section">
+                <h3>📊 视频信息</h3>
+                <div id="video-info"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📝 测试结果</h3>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>

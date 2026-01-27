@@ -40,6 +40,47 @@ export default class PolygonHotspot extends Hotspot {
     }
     
     /**
+     * 获取边界框（遵循 Phaser 官方标准）
+     * @returns {object} 包含 left, right, top, bottom, width, height 的对象
+     */
+    getBounds() {
+        if (!this.config.points || this.config.points.length === 0) {
+            return {
+                left: this.x,
+                right: this.x,
+                top: this.y,
+                bottom: this.y,
+                width: 0,
+                height: 0
+            };
+        }
+        
+        // 计算所有顶点的边界框
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+        
+        this.config.points.forEach(point => {
+            const worldX = this.x + point.x;
+            const worldY = this.y + point.y;
+            minX = Math.min(minX, worldX);
+            maxX = Math.max(maxX, worldX);
+            minY = Math.min(minY, worldY);
+            maxY = Math.max(maxY, worldY);
+        });
+        
+        return {
+            left: minX,
+            right: maxX,
+            top: minY,
+            bottom: maxY,
+            width: maxX - minX,
+            height: maxY - minY
+        };
+    }
+    
+    /**
      * 设置缩放手柄（多边形使用顶点作为手柄）
      * 重写父类方法
      */
@@ -73,8 +114,8 @@ export default class PolygonHotspot extends Hotspot {
                 this.resizeStartPos = { x: this.x, y: this.y };
             });
             
-            handle.on('drag', (_pointer, dragX, dragY) => {
-                this.onHandleDrag(index, dragX, dragY);
+            handle.on('drag', (pointer, dragX, dragY) => {
+                this.onHandleDrag(index, dragX, dragY, pointer);
             });
             
             handle.on('dragend', () => {
@@ -120,8 +161,9 @@ export default class PolygonHotspot extends Hotspot {
      * @param {number} handleIndex - 手柄索引（顶点索引）
      * @param {number} dragX - 拖拽到的 X 坐标
      * @param {number} dragY - 拖拽到的 Y 坐标
+     * @param {Phaser.Input.Pointer} pointer - 指针对象
      */
-    onHandleDrag(handleIndex, dragX, dragY) {
+    onHandleDrag(handleIndex, dragX, dragY, pointer) {
         if (!this.config.points || handleIndex >= this.config.points.length) return;
         
         // 更新顶点位置（相对于热区中心）

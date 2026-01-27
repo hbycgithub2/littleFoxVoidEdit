@@ -1,0 +1,493 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    overflow: hidden;
+}
+
+#app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 视频层 - 在 Canvas 下方 */
+#video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;  /* 改为1，确保在Canvas下方 */
+    max-width: 90vw;
+    max-height: 80vh;
+    pointer-events: auto;
+}
+
+/* Canvas 层 - 在视频上方 */
+#phaserContainer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;  /* 改为100，确保在Video上方 */
+    pointer-events: none;
+}
+
+#phaserContainer canvas {
+    background: transparent !important;
+    /* 默认不拦截事件，让视频进度条可用 */
+    pointer-events: none;
+    /* 通过 CanvasPointerController 动态控制 */
+}
+
+/* 工具栏 - 确保不遮挡视频 */
+#toolbar {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+}
+
+.tool-group {
+    display: flex;
+    gap: 5px;
+    padding: 0 10px;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tool-group:last-child {
+    border-right: none;
+}
+
+button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.tool-btn.active {
+    background: #00ff00;
+    color: #000;
+    border-color: #00ff00;
+}
+
+.danger {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: #ff0000;
+}
+
+.danger:hover {
+    background: rgba(255, 0, 0, 0.4);
+}
+
+/* 属性面板 */
+#propertyPanel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    min-width: 250px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#propertyPanel h3 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 2px solid #00ff00;
+    padding-bottom: 10px;
+}
+
+#propertyPanel label {
+    display: block;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+#propertyPanel input {
+    width: 100%;
+    margin-top: 5px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    color: #fff;
+    font-size: 14px;
+}
+
+#propertyPanel input:focus {
+    outline: none;
+    border-color: #00ff00;
+}
+
+/* 热区列表 */
+#hotspotList {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    min-width: 250px;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#hotspotList h3 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 2px solid #00ff00;
+    padding-bottom: 10px;
+}
+
+.hotspot-item {
+    padding: 10px;
+    margin-bottom: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.hotspot-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #00ff00;
+}
+
+/* 滚动条样式 */
+#hotspotList::-webkit-scrollbar {
+    width: 8px;
+}
+
+#hotspotList::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+#hotspotList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+#hotspotList::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+
+/* 图层面板 */
+#layerPanel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    min-width: 300px;
+    max-height: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#layerPanel h3 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 2px solid #00ff00;
+    padding-bottom: 10px;
+}
+
+.layer-add-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    background: rgba(0, 255, 0, 0.2);
+    border-color: #00ff00;
+}
+
+.layer-add-btn:hover {
+    background: rgba(0, 255, 0, 0.3);
+}
+
+#layerListContent {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.layer-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    margin-bottom: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.layer-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.layer-item.active {
+    background: rgba(0, 255, 0, 0.2);
+    border-color: #00ff00;
+}
+
+.layer-icon-btn {
+    padding: 5px 8px;
+    font-size: 14px;
+    min-width: 32px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.layer-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.layer-name {
+    flex: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 5px;
+    font-size: 14px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.layer-name:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #00ff00;
+    cursor: text;
+}
+
+.layer-name[readonly] {
+    cursor: pointer;
+}
+
+.layer-count {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.layer-actions {
+    display: flex;
+    gap: 3px;
+}
+
+.layer-action-btn {
+    padding: 3px 6px;
+    font-size: 12px;
+    min-width: 24px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.layer-action-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.layer-action-btn.danger {
+    background: rgba(255, 0, 0, 0.1);
+}
+
+.layer-action-btn.danger:hover {
+    background: rgba(255, 0, 0, 0.3);
+}
+
+/* 图层面板滚动条 */
+#layerListContent::-webkit-scrollbar {
+    width: 8px;
+}
+
+#layerListContent::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+#layerListContent::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+#layerListContent::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 时间轴面板 */
+#timelinePanel {
+    position: fixed;
+    bottom: 20px;
+    left: 340px;
+    right: 290px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    height: 250px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#timelinePanel h3 {
+    margin-bottom: 10px;
+    font-size: 16px;
+    border-bottom: 2px solid #00ff00;
+    padding-bottom: 8px;
+}
+
+#timelineCanvas {
+    width: 100%;
+    height: calc(100% - 40px);
+    cursor: default;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+/* 样式预设面板 */
+#stylePanel {
+    position: fixed;
+    top: 320px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    min-width: 250px;
+    max-height: 300px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#stylePanel h3 {
+    margin-bottom: 10px;
+    font-size: 16px;
+    border-bottom: 2px solid #00ff00;
+    padding-bottom: 8px;
+}
+
+.style-save-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    background: rgba(0, 255, 0, 0.2);
+    border-color: #00ff00;
+    font-size: 14px;
+}
+
+.style-save-btn:hover {
+    background: rgba(0, 255, 0, 0.3);
+}
+
+#stylePresetList {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.style-preset-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    margin-bottom: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    transition: all 0.2s;
+}
+
+.style-preset-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.style-color-preview {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.style-preset-name {
+    flex: 1;
+    font-size: 14px;
+    color: #fff;
+}
+
+.style-apply-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: rgba(0, 255, 0, 0.2);
+    border-color: #00ff00;
+}
+
+.style-apply-btn:hover {
+    background: rgba(0, 255, 0, 0.3);
+}
+
+.style-delete-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: rgba(255, 0, 0, 0.2);
+    border-color: #ff0000;
+}
+
+.style-delete-btn:hover {
+    background: rgba(255, 0, 0, 0.3);
+}
+
+/* 样式预设列表滚动条 */
+#stylePresetList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#stylePresetList::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+#stylePresetList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+#stylePresetList::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}

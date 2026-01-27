@@ -392,6 +392,21 @@ export default class UIController {
                 this.setDrawMode(null);
                 if (this.toast) this.toast.info('已取消绘制模式');
             }, '取消');
+            
+            // Ctrl+H 切换选择指示器显示（遵循 Phaser 官方标准）
+            this.keyboard.register('Ctrl+H', () => {
+                if (this.scene) {
+                    const current = this.scene.registry.get('showSelectionIndicator') ?? false;
+                    this.scene.registry.set('showSelectionIndicator', !current);
+                    
+                    // 触发更新
+                    this.scene.selectionManager.emitChange();
+                    
+                    if (this.toast) {
+                        this.toast.info(current ? '已隐藏选择指示器' : '已显示选择指示器');
+                    }
+                }
+            }, '切换选择指示器');
         }
         
         // 保留原有的 document 监听（作为备份）

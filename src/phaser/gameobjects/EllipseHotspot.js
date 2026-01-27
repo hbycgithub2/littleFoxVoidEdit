@@ -22,6 +22,23 @@ export default class EllipseHotspot extends Hotspot {
     }
     
     /**
+     * 获取边界框（遵循 Phaser 官方标准）
+     * @returns {object} 包含 left, right, top, bottom, width, height 的对象
+     */
+    getBounds() {
+        const rx = this.config.radiusX;
+        const ry = this.config.radiusY;
+        return {
+            left: this.x - rx,
+            right: this.x + rx,
+            top: this.y - ry,
+            bottom: this.y + ry,
+            width: rx * 2,
+            height: ry * 2
+        };
+    }
+    
+    /**
      * 更新手柄位置（椭圆使用 4 个方向手柄）
      * 遵循 Phaser 3 官方标准
      */
@@ -58,8 +75,9 @@ export default class EllipseHotspot extends Hotspot {
      * @param {number} handleIndex - 手柄索引（0-7）
      * @param {number} dragX - 拖拽到的 X 坐标
      * @param {number} dragY - 拖拽到的 Y 坐标
+     * @param {Phaser.Input.Pointer} pointer - 指针对象
      */
-    onHandleDrag(handleIndex, dragX, dragY) {
+    onHandleDrag(handleIndex, dragX, dragY, pointer) {
         // 根据手柄索引调整半径
         switch (handleIndex) {
             case 1: // 上

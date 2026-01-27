@@ -60,6 +60,14 @@ export default class Hotspot extends Phaser.GameObjects.Graphics {
     }
     
     /**
+     * 抽象方法：获取边界框（子类必须实现）
+     * @returns {object} 包含 left, right, top, bottom, width, height 的对象
+     */
+    getBounds() {
+        throw new Error('getBounds() must be implemented by subclass');
+    }
+    
+    /**
      * 设置交互（遵循 Phaser 官方标准）
      */
     setupInteractive() {
@@ -99,8 +107,11 @@ export default class Hotspot extends Phaser.GameObjects.Graphics {
         this.scene.input.setDraggable(this);
         
         // 记录拖拽开始位置
-        this.on('dragstart', () => {
+        this.on('dragstart', (pointer) => {
             this.dragStartPos = { x: this.x, y: this.y };
+            
+            // 发送拖拽开始事件（用于多选拖拽）
+            this.scene.events.emit('hotspot:dragstart', this, pointer);
         });
         
         // 拖拽中（性能优化：使用节流）
@@ -112,6 +123,9 @@ export default class Hotspot extends Phaser.GameObjects.Graphics {
             if (this.resizeHandles) {
                 this.updateHandlePositions();
             }
+            
+            // 发送拖拽中事件（用于多选拖拽）
+            this.scene.events.emit('hotspot:drag', this, pointer);
         });
         
         // 拖拽结束
@@ -126,6 +140,9 @@ export default class Hotspot extends Phaser.GameObjects.Graphics {
                 oldPos: this.dragStartPos,
                 newPos: { x: this.x, y: this.y }
             });
+            
+            // 发送拖拽结束事件（用于多选拖拽）
+            this.scene.events.emit('hotspot:dragend', this);
         });
     }
     
@@ -156,13 +173,16 @@ export default class Hotspot extends Phaser.GameObjects.Graphics {
             handle.hotspot = this;
             
             // 拖拽事件
-            handle.on('dragstart', () => {
+            handle.on('dragstart', (pointer) => {
                 this.resizeStartSize = this.getCurrentSize();
                 this.resizeStartPos = { x: this.x, y: this.y };
+                
+                // 发送缩放开始事件
+                this.scene.events.emit('hotspot:resizestart', this, index);
             });
             
             handle.on('drag', (pointer, dragX, dragY) => {
-                this.onHandleDrag(index, dragX, dragY);
+                this.onHandleDrag(index, dragX, dragY, pointer);
             });
             
             handle.on('dragend', () => {
@@ -212,7 +232,7 @@ export default class Hotspot extends Phaser.GameObjects.Graphics {
     /**
      * 处理手柄拖拽（子类必须实现）
      */
-    onHandleDrag(handleIndex, dragX, dragY) {
+    onHandleDrag(handleIndex, dragX, dragY, pointer) {
         // 子类实现
     }
     

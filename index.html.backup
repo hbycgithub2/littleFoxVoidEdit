@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Fox Video Editor</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 视频层 (z-index: 2) -->
+        <video id="video" controls preload="metadata" crossorigin="anonymous">
+            <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+            您的浏览器不支持视频播放
+        </video>
+        
+        <!-- Canvas 层 (z-index: 2) -->
+        <div id="phaserContainer"></div>
+        
+        <!-- UI 层 (z-index: 3) -->
+        <div id="toolbar">
+            <div class="tool-group">
+                <button class="tool-btn" data-mode="circle" data-tooltip="圆形 (C)" title="圆形 (C)">⭕</button>
+                <button class="tool-btn" data-mode="rect" data-tooltip="矩形 (R)" title="矩形 (R)">▭</button>
+                <button class="tool-btn" data-mode="ellipse" data-tooltip="椭圆 (E)" title="椭圆 (E)">⬭</button>
+                <button class="tool-btn" data-mode="polygon" data-tooltip="多边形 (P)" title="多边形 (P)">⬟</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="playBtn" data-tooltip="播放 (Space)" title="播放 (Space)">▶️</button>
+                <button id="pauseBtn" data-tooltip="暂停 (Space)" title="暂停 (Space)">⏸️</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="undoBtn" data-tooltip="撤销 (Ctrl+Z)" title="撤销 (Ctrl+Z)">↶</button>
+                <button id="redoBtn" data-tooltip="重做 (Ctrl+Shift+Z)" title="重做 (Ctrl+Shift+Z)">↷</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="exportBtn" data-tooltip="导出 (Ctrl+S)" title="导出">💾</button>
+                <button id="importBtn" data-tooltip="导入 (Ctrl+O)" title="导入">📂</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="alignLeftBtn" data-tooltip="左对齐" title="左对齐">⬅️</button>
+                <button id="alignCenterHBtn" data-tooltip="水平居中" title="水平居中">↔️</button>
+                <button id="alignRightBtn" data-tooltip="右对齐" title="右对齐">➡️</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="alignTopBtn" data-tooltip="顶部对齐" title="顶部对齐">⬆️</button>
+                <button id="alignCenterVBtn" data-tooltip="垂直居中" title="垂直居中">↕️</button>
+                <button id="alignBottomBtn" data-tooltip="底部对齐" title="底部对齐">⬇️</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="distributeHBtn" data-tooltip="水平分布" title="水平分布">⬌</button>
+                <button id="distributeVBtn" data-tooltip="垂直分布" title="垂直分布">⬍</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="groupBtn" data-tooltip="创建分组 (Ctrl+G)" title="创建分组">📦</button>
+                <button id="ungroupBtn" data-tooltip="解散分组 (Ctrl+Shift+G)" title="解散分组">📂</button>
+            </div>
+        </div>
+        
+        <div id="propertyPanel" style="display: none;">
+            <h3>热区属性</h3>
+            <label>
+                单词:
+                <input id="propWord" type="text" placeholder="输入单词">
+            </label>
+            <label>
+                开始时间:
+                <input id="propStartTime" type="number" step="0.1" min="0">
+            </label>
+            <label>
+                结束时间:
+                <input id="propEndTime" type="number" step="0.1" min="0">
+            </label>
+            <label>
+                颜色:
+                <input id="propColor" type="color" value="#00ff00">
+            </label>
+            <button id="deleteBtn" class="danger">删除 (Del)</button>
+        </div>
+        
+        <div id="stylePanel">
+            <h3>样式预设</h3>
+            <button id="savePresetBtn" class="style-save-btn">💾 保存当前样式</button>
+            <div id="stylePresetList"></div>
+        </div>
+        
+        <div id="hotspotList">
+            <h3>热区列表</h3>
+            <div id="hotspotListContent"></div>
+        </div>
+        
+        <div id="layerPanel">
+            <h3>图层管理</h3>
+            <button id="addLayerBtn" class="layer-add-btn">➕ 新建图层</button>
+            <div id="layerListContent"></div>
+        </div>
+        
+        <div id="timelinePanel">
+            <h3>时间轴</h3>
+            <canvas id="timelineCanvas"></canvas>
+        </div>
+    </div>
+    
+    <!-- Phaser 3 库 (本地) -->
+    <script src="lib/phaser.min.js"></script>
+    
+    <!-- 应用入口 -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

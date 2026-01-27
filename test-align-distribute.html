@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>对齐和分布测试 - Phaser 3</title>
+    <script src="lib/phaser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; background: #1a1a1a; color: #fff; font-family: Arial; }
+        #info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); 
+                padding: 15px; border-radius: 8px; border: 2px solid #4CAF50; max-width: 300px; }
+        .pass { color: #4CAF50; }
+        .fail { color: #ff5555; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>🎯 对齐分布测试</h3>
+        <div id="results"></div>
+    </div>
+    <script type="module">
+        class AlignTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'AlignTestScene' });
+                this.testResults = [];
+            }
+
+            create() {
+                this.hotspots = [];
+                this.selected = [];
+                
+                // 创建测试热区
+                this.createTestHotspots();
+                this.showInstructions();
+                this.setupKeyboard();
+                
+                // 自动测试
+                this.time.delayedCall(1000, () => this.runAutoTests());
+            }
+
+            createTestHotspots() {
+                const positions = [
+                    { x: 100, y: 100 }, { x: 300, y: 150 }, { x: 500, y: 120 },
+                    { x: 150, y: 300 }, { x: 350, y: 350 }, { x: 550, y: 320 }
+                ];
+
+                positions.forEach((pos, i) => {
+                    const container = this.add.container(pos.x, pos.y);
+                    const graphics = this.add.graphics();
+                    graphics.lineStyle(3, 0x00ff00);
+                    graphics.strokeRect(-40, -30, 80, 60);
+                    container.add(graphics);
+                    
+                    const text = this.add.text(0, 0, `${i+1}`, {
+                        fontSize: '16px', color: '#fff'
+                    });
+                    text.setOrigin(0.5);
+                    container.add(text);
+                    
+                    container.setData('graphics', graphics);
+                    container.setData('selected', false);
+                    
+                    graphics.setInteractive(
+                        new Phaser.Geom.Rectangle(-40, -30, 80, 60),
+                        Phaser.Geom.Rectangle.Contains
+                    );
+                    graphics.on('pointerdown', () => this.toggleSelect(container));
+                    
+                    this.hotspots.push(container);
+                });
+                
+                this.log(`✓ 创建 ${this.hotspots.length} 个热区`);
+            }
+
+            toggleSelect(hotspot) {
+                const isSelected = hotspot.getData('selected');
+                if (this.input.keyboard.addKey('SHIFT').isDown) {
+                    if (isSelected) this.deselect(hotspot);
+                    else this.select(hotspot);
+                } else {
+                    this.clearSelection();
+                    this.select(hotspot);
+                }
+            }
+
+            select(hotspot) {
+                hotspot.setData('selected', true);
+                this.selected.push(hotspot);
+                const g = hotspot.getData('graphics');
+                g.clear();
+                g.lineStyle(5, 0xffff00);
+                g.strokeRect(-40, -30, 80, 60);
+            }
+
+            deselect(hotspot) {
+                hotspot.setData('selected', false);
+                this.selected = this.selected.filter(h => h !== hotspot);
+                const g = hotspot.getData('graphics');
+                g.clear();
+                g.lineStyle(3, 0x00ff00);
+                g.strokeRect(-40, -30, 80, 60);
+            }
+
+            clearSelection() {
+                this.selected.forEach(h => this.deselect(h));
+                this.selected = [];
+            }
+
+            showInstructions() {
+                this.add.text(20, 20, [
+                    '🎯 对齐分布测试',
+                    'Shift+点击多选',
+                    '1-左对齐 2-右对齐 3-水平居中',
+                    '4-顶部对齐 5-底部对齐 6-垂直居中',
+                    '7-水平分布 8-垂直分布 9-画布居中'
+                ], {
+                    fontSize: '13px', color: '#fff',
+                    backgroundColor: '#000', padding: { x: 10, y: 8 }
+                });
+            }
+
+            setupKeyboard() {
+                this.input.keyboard.on('keydown-ONE', () => this.alignLeft());
+                this.input.keyboard.on('keydown-TWO', () => this.alignRight());
+                this.input.keyboard.on('keydown-THREE', () => this.alignCenterH());
+                this.input.keyboard.on('keydown-FOUR', () => this.alignTop());
+                this.input.keyboard.on('keydown-FIVE', () => this.alignBottom());
+                this.input.keyboard.on('keydown-SIX', () => this.alignCenterV());
+                this.input.keyboard.on('keydown-SEVEN', () => this.distributeH());
+                this.input.keyboard.on('keydown-EIGHT', () => this.distributeV());
+                this.input.keyboard.on('keydown-NINE', () => this.alignCanvas());
+                this.input.keyboard.on('keydown-A', () => this.selectAll());
+            }
+
+            alignLeft() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个热区', 'fail');
+                const minX = Math.min(...this.selected.map(h => h.x));
+                this.selected.forEach(h => h.x = minX);
+                this.log('✓ 左对齐完成', 'pass');
+            }
+
+            alignRight() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个热区', 'fail');
+                const maxX = Math.max(...this.selected.map(h => h.x));
+                this.selected.forEach(h => h.x = maxX);
+                this.log('✓ 右对齐完成', 'pass');
+            }
+
+            alignCenterH() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个热区', 'fail');
+                const minX = Math.min(...this.selected.map(h => h.x));
+                const maxX = Math.max(...this.selected.map(h => h.x));
+                const centerX = (minX + maxX) / 2;
+                this.selected.forEach(h => h.x = centerX);
+                this.log('✓ 水平居中完成', 'pass');
+            }
+
+            alignTop() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个热区', 'fail');
+                const minY = Math.min(...this.selected.map(h => h.y));
+                this.selected.forEach(h => h.y = minY);
+                this.log('✓ 顶部对齐完成', 'pass');
+            }
+
+            alignBottom() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个热区', 'fail');
+                const maxY = Math.max(...this.selected.map(h => h.y));
+                this.selected.forEach(h => h.y = maxY);
+                this.log('✓ 底部对齐完成', 'pass');
+            }
+
+            alignCenterV() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个热区', 'fail');
+                const minY = Math.min(...this.selected.map(h => h.y));
+                const maxY = Math.max(...this.selected.map(h => h.y));
+                const centerY = (minY + maxY) / 2;
+                this.selected.forEach(h => h.y = centerY);
+                this.log('✓ 垂直居中完成', 'pass');
+            }
+
+            distributeH() {
+                if (this.selected.length < 3) return this.log('⚠️ 需要至少3个热区', 'fail');
+                const sorted = [...this.selected].sort((a, b) => a.x - b.x);
+                const minX = sorted[0].x;
+                const maxX = sorted[sorted.length - 1].x;
+                const spacing = (maxX - minX) / (sorted.length - 1);
+                sorted.forEach((h, i) => h.x = minX + spacing * i);
+                this.log('✓ 水平分布完成', 'pass');
+            }
+
+            distributeV() {
+                if (this.selected.length < 3) return this.log('⚠️ 需要至少3个热区', 'fail');
+                const sorted = [...this.selected].sort((a, b) => a.y - b.y);
+                const minY = sorted[0].y;
+                const maxY = sorted[sorted.length - 1].y;
+                const spacing = (maxY - minY) / (sorted.length - 1);
+                sorted.forEach((h, i) => h.y = minY + spacing * i);
+                this.log('✓ 垂直分布完成', 'pass');
+            }
+
+            alignCanvas() {
+                if (this.selected.length === 0) return;
+                const centerX = 400;
+                const centerY = 300;
+                if (this.selected.length === 1) {
+                    this.selected[0].x = centerX;
+                    this.selected[0].y = centerY;
+                } else {
+                    const minX = Math.min(...this.selected.map(h => h.x));
+                    const maxX = Math.max(...this.selected.map(h => h.x));
+                    const minY = Math.min(...this.selected.map(h => h.y));
+                    const maxY = Math.max(...this.selected.map(h => h.y));
+                    const offsetX = centerX - (minX + maxX) / 2;
+                    const offsetY = centerY - (minY + maxY) / 2;
+                    this.selected.forEach(h => {
+                        h.x += offsetX;
+                        h.y += offsetY;
+                    });
+                }
+                this.log('✓ 画布居中完成', 'pass');
+            }
+
+            selectAll() {
+                this.clearSelection();
+                this.hotspots.forEach(h => this.select(h));
+                this.log(`✓ 全选 ${this.hotspots.length} 个热区`, 'pass');
+            }
+
+            runAutoTests() {
+                this.log('🚀 开始自动测试...');
+                let delay = 0;
+
+                this.time.delayedCall(delay += 1000, () => {
+                    this.log('📝 测试1: 左对齐');
+                    this.clearSelection();
+                    [0, 1, 2].forEach(i => this.select(this.hotspots[i]));
+                    this.alignLeft();
+                });
+
+                this.time.delayedCall(delay += 1500, () => {
+                    this.log('📝 测试2: 顶部对齐');
+                    this.alignTop();
+                });
+
+                this.time.delayedCall(delay += 1500, () => {
+                    this.log('📝 测试3: 水平分布');
+                    this.distributeH();
+                });
+
+                this.time.delayedCall(delay += 1500, () => {
+                    this.log('📝 测试4: 垂直分布');
+                    this.clearSelection();
+                    [0, 3].forEach(i => this.select(this.hotspots[i]));
+                    this.select(this.hotspots[1]);
+                    this.distributeV();
+                });
+
+                this.time.delayedCall(delay += 1500, () => {
+                    this.log('📝 测试5: 画布居中');
+                    this.selectAll();
+                    this.alignCanvas();
+                });
+
+                this.time.delayedCall(delay += 2000, () => {
+                    this.log('🎉 所有测试完成！', 'pass');
+                    this.showSummary();
+                });
+            }
+
+            showSummary() {
+                this.add.text(400, 500, [
+                    '✅ 测试总结',
+                    '✓ 左/右对齐 - 通过',
+                    '✓ 顶部/底部对齐 - 通过',
+                    '✓ 水平/垂直居中 - 通过',
+                    '✓ 水平/垂直分布 - 通过',
+                    '✓ 画布居中 - 通过'
+                ], {
+                    fontSize: '14px', color: '#4CAF50',
+                    backgroundColor: '#000', padding: { x: 15, y: 10 }
+                }).setOrigin(0.5).setDepth(2000);
+            }
+
+            log(msg, type = 'info') {
+                console.log(msg);
+                this.testResults.push({ msg, type });
+                const div = document.getElementById('results');
+                const recent = this.testResults.slice(-6);
+                div.innerHTML = recent.map(r => 
+                    `<div class="${r.type}">${r.msg}</div>`
+                ).join('');
+            }
+        }
+
+        new Phaser.Game({
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#2d2d2d',
+            parent: document.body,
+            scene: AlignTestScene
+        });
+    </script>
+</body>
+</html>

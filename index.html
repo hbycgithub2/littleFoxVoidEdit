@@ -5,19 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Little Fox Video Editor</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/view-menu.css">
 </head>
 <body>
     <div id="app">
-        <!-- 视频层 (z-index: 2) -->
-        <video id="video" controls preload="metadata" crossorigin="anonymous">
-            <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
-            您的浏览器不支持视频播放
-        </video>
-        
-        <!-- Canvas 层 (z-index: 2) -->
-        <div id="phaserContainer"></div>
-        
-        <!-- UI 层 (z-index: 3) -->
+        <!-- 顶部工具栏 -->
         <div id="toolbar">
             <div class="tool-group">
                 <button class="tool-btn" data-mode="circle" data-tooltip="圆形 (C)" title="圆形 (C)">⭕</button>
@@ -62,47 +54,74 @@
                 <button id="groupBtn" data-tooltip="创建分组 (Ctrl+G)" title="创建分组">📦</button>
                 <button id="ungroupBtn" data-tooltip="解散分组 (Ctrl+Shift+G)" title="解散分组">📂</button>
             </div>
+            
+            <div class="tool-group" style="margin-left: auto;">
+                <button id="viewMenuBtn" class="tool-btn" title="View Menu">View ▼</button>
+            </div>
         </div>
         
-        <div id="propertyPanel" style="display: none;">
-            <h3>热区属性</h3>
-            <label>
-                单词:
-                <input id="propWord" type="text" placeholder="输入单词">
-            </label>
-            <label>
-                开始时间:
-                <input id="propStartTime" type="number" step="0.1" min="0">
-            </label>
-            <label>
-                结束时间:
-                <input id="propEndTime" type="number" step="0.1" min="0">
-            </label>
-            <label>
-                颜色:
-                <input id="propColor" type="color" value="#00ff00">
-            </label>
-            <button id="deleteBtn" class="danger">删除 (Del)</button>
+        <!-- 主内容区 -->
+        <div id="mainContainer">
+            <!-- 左侧边栏 -->
+            <div id="leftSidebar">
+                <div id="layerPanel">
+                    <h3>图层管理</h3>
+                    <button id="addLayerBtn" class="layer-add-btn">➕ 新建图层</button>
+                    <div id="layerListContent"></div>
+                </div>
+            </div>
+            
+            <!-- 中间编辑区 -->
+            <div id="centerArea">
+                <video id="video" controls preload="metadata" crossorigin="anonymous">
+                    <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放
+                </video>
+                <div id="phaserContainer"></div>
+            </div>
+            
+            <!-- 右侧边栏 -->
+            <div id="rightSidebar">
+                <div id="propertyPanel" style="display: none;">
+                    <h3>热区属性</h3>
+                    <label>
+                        单词:
+                        <input id="propWord" type="text" placeholder="输入单词">
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        开始时间:
+                        <input id="propStartTime" type="number" step="0.1" min="0" style="flex: 1;" title="双击跳转到该时间">
+                        <button id="setStartTimeBtn" class="time-btn" title="设置为当前视频时间">📍</button>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        结束时间:
+                        <input id="propEndTime" type="number" step="0.1" min="0" style="flex: 1;" title="双击跳转到该时间">
+                        <button id="setEndTimeBtn" class="time-btn" title="设置为当前视频时间">📍</button>
+                    </label>
+                    <label>
+                        颜色:
+                        <input id="propColor" type="color" value="#00ff00">
+                    </label>
+                    <button id="deleteBtn" class="danger">删除 (Del)</button>
+                </div>
+                
+                <div id="stylePanel">
+                    <h3>样式预设</h3>
+                    <button id="savePresetBtn" class="style-save-btn">💾 保存当前样式</button>
+                    <div id="stylePresetList"></div>
+                </div>
+                
+                <div id="hotspotList">
+                    <h3>热区列表</h3>
+                    <div id="hotspotListContent"></div>
+                </div>
+            </div>
         </div>
         
-        <div id="stylePanel">
-            <h3>样式预设</h3>
-            <button id="savePresetBtn" class="style-save-btn">💾 保存当前样式</button>
-            <div id="stylePresetList"></div>
-        </div>
-        
-        <div id="hotspotList">
-            <h3>热区列表</h3>
-            <div id="hotspotListContent"></div>
-        </div>
-        
-        <div id="layerPanel">
-            <h3>图层管理</h3>
-            <button id="addLayerBtn" class="layer-add-btn">➕ 新建图层</button>
-            <div id="layerListContent"></div>
-        </div>
-        
+        <!-- 底部时间轴 -->
         <div id="timelinePanel">
+            <!-- 拖拽分隔条 -->
+            <div id="timelineResizer"></div>
             <h3>时间轴</h3>
             <canvas id="timelineCanvas"></canvas>
         </div>

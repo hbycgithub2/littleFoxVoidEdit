@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Timeline Final Validation</title>
+    <script src="lib/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; font-family: 'Segoe UI', Arial; overflow: hidden; }
+        #app { display: flex; height: 100vh; }
+        #game { flex: 1; background: #1a1a1a; }
+        #panel { width: 380px; background: #000; color: #fff; overflow-y: auto;
+                 border-left: 3px solid #4CAF50; display: flex; flex-direction: column; }
+        .section { padding: 15px; border-bottom: 2px solid #1a1a1a; }
+        .section h3 { color: #4CAF50; margin: 0 0 12px 0; font-size: 16px;
+                      display: flex; align-items: center; gap: 8px; }
+        .btn { background: linear-gradient(135deg, #4CAF50, #45a049); color: #fff;
+               border: none; padding: 12px; margin: 5px 0; border-radius: 6px;
+               cursor: pointer; font-size: 12px; width: 100%; font-weight: 600;
+               transition: all 0.3s; box-shadow: 0 2px 8px rgba(76,175,80,0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(76,175,80,0.5); }
+        .btn-primary { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .btn-danger { background: linear-gradient(135deg, #f44336, #da190b); }
+        .test-item { padding: 10px; margin: 6px 0; border-radius: 4px;
+                     background: rgba(76,175,80,0.1); border-left: 4px solid #4CAF50;
+                     font-size: 12px; transition: all 0.3s; }
+        .test-item:hover { background: rgba(76,175,80,0.2); }
+        .test-item.fail { background: rgba(244,67,54,0.1); border-left-color: #f44336; }
+        .test-name { font-weight: 600; margin-bottom: 4px; }
+        .test-duration { color: #888; font-size: 10px; }
+        .metric { display: flex; justify-content: space-between; padding: 8px 0;
+                  font-size: 13px; border-bottom: 1px solid #222; }
+        .metric-label { color: #aaa; }
+        .metric-value { color: #4CAF50; font-weight: 700; font-size: 14px; }
+        .metric-value.fail { color: #f44336; }
+        kbd { background: #333; padding: 3px 7px; border-radius: 4px; font-size: 11px;
+              border: 1px solid #555; box-shadow: 0 2px 0 #222; }
+        #results { max-height: 400px; overflow-y: auto; }
+        #results::-webkit-scrollbar { width: 8px; }
+        #results::-webkit-scrollbar-track { background: #1a1a1a; }
+        #results::-webkit-scrollbar-thumb { background: #4CAF50; border-radius: 4px; }
+        .progress-bar { width: 100%; height: 6px; background: #222; border-radius: 3px;
+                        overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A);
+                         transition: width 0.3s; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 12px;
+                 font-size: 10px; font-weight: 600; margin-left: 8px; }
+        .badge-success { background: #4CAF50; color: #fff; }
+        .badge-warning { background: #FF9800; color: #fff; }
+        .badge-error { background: #f44336; color: #fff; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="game"></div>
+        <div id="panel">
+            <div class="section" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a);">
+                <h3>🎬 时间轴终极验证</h3>
+                <p style="font-size:11px;color:#888;margin:0;">
+                    完全遵循 Phaser 3 官方标准 | 15项完整测试
+                </p>
+            </div>
+            
+            <div class="section">
+                <h3>⌨️ 快捷键</h3>
+                <div style="font-size:11px;line-height:1.8;">
+                    <kbd>Space</kbd> 播放/暂停<br>
+                    <kbd>←</kbd> <kbd>→</kbd> 前后1秒<br>
+                    <kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> 前后5秒<br>
+                    <kbd>Home</kbd> <kbd>End</kbd> 开始/结束<br>
+                    <kbd>右键</kbd> 显示菜单
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🚀 测试控制</h3>
+                <button class="btn" onclick="scene.runFullValidation()">
+                    运行完整验证测试
+                </button>
+                <button class="btn btn-primary" onclick="scene.runQuickTest()">
+                    快速测试（核心功能）
+                </button>
+                <button class="btn btn-danger" onclick="scene.resetTest()">
+                    重置测试
+                </button>
+            </div>
+            
+            <div class="section">
+                <h3>📊 测试统计</h3>
+                <div id="stats">
+                    <div class="metric">
+                        <span class="metric-label">总测试数:</span>
+                        <span class="metric-value" id="total">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">通过:</span>
+                        <span class="metric-value" id="passed">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">失败:</span>
+                        <span class="metric-value fail" id="failed">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">通过率:</span>
+                        <span class="metric-value" id="passRate">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">总耗时:</span>
+                        <span class="metric-value" id="duration">0ms</span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress" style="width:0%"></div>
+                </div>
+            </div>
+            
+            <div class="section" style="flex:1;">
+                <h3>📝 测试结果</h3>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import TimelineCore from './src/timeline/TimelineCore.js';
+        import TimelineControls from './src/timeline/TimelineControls.js';
+        import TimelineAdvanced from './src/timeline/TimelineAdvanced.js';
+        import TimelineValidator from './src/timeline/TimelineValidator.js';
+        
+        let scene;
+        
+        class TimelineFinalScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TimelineFinal' });
+                window.scene = this;
+            }
+
+            create() {
+                scene = this;
+                this.cameras.main.setBackgroundColor('#2d2d2d');
+                
+                // 初始化时间轴系统
+                this.initTimeline();
+                
+                // 添加测试数据
+                this.addTestData();
+                
+                // 显示提示
+                this.showHint();
+                
+                console.log('✓ 时间轴系统初始化完成');
+            }
+
+            initTimeline() {
+                // 创建时间轴核心
+                this.timeline = new TimelineCore(this, {
+                    x: 0, y: 500, width: 800, height: 100,
+                    duration: 60, pixelsPerSecond: 10, snapInterval: 0.5
+                });
+                
+                // 创建控制器
+                this.controls = new TimelineControls(this, this.timeline);
+                
+                // 创建高级功能
+                this.advanced = new TimelineAdvanced(this, this.timeline);
+                
+                // 创建验证器
+                this.validator = new TimelineValidator(
+                    this, this.timeline, this.controls, this.advanced
+                );
+            }
+
+            addTestData() {
+                // 添加多个时间条
+                const colors = [0x4CAF50, 0x2196F3, 0xFF9800, 0x9C27B0, 0xF44336];
+                for (let i = 0; i < 10; i++) {
+                    const start = i * 5 + 2;
+                    const end = start + 4;
+                    const y = 40 + (i % 3) * 22;
+                    this.timeline.addTimeBar(`热区${i+1}`, start, end, y, colors[i % 5]);
+                }
+                
+                // 添加时间标记
+                [0, 15, 30, 45, 60].forEach((t, i) => {
+                    const labels = ['开始', '1/4', '中点', '3/4', '结束'];
+                    const colors = [0x00ff00, 0xffff00, 0xff9900, 0xffff00, 0xff0000];
+                    this.timeline.addMarker(t, labels[i], colors[i]);
+                });
+            }
+
+            showHint() {
+                this.add.text(20, 20, [
+                    '🎬 时间轴终极验证测试',
+                    '点击右侧面板运行完整测试 | 所有操作自动化'
+                ], {
+                    fontSize: '13px', color: '#fff',
+                    backgroundColor: '#000', padding: { x: 10, y: 6 }
+                }).setDepth(100);
+            }
+
+            update(time, delta) {
+                if (this.timeline) this.timeline.update(delta);
+            }
+
+            async runFullValidation() {
+                this.updateUI('开始完整验证...', 'info');
+                
+                const report = await this.validator.runFullValidation();
+                
+                this.displayReport(report);
+                this.showCompletionMessage(report);
+            }
+
+            async runQuickTest() {
+                this.updateUI('开始快速测试...', 'info');
+                
+                // 只测试核心功能
+                await this.validator.validateTimeScale();
+                await this.validator.validateTimeBars();
+                await this.validator.validatePlayheadDrag();
+                await this.validator.validateTimelineClick();
+                await this.validator.validateSnapping();
+                
+                const report = this.validator.generateReport();
+                this.displayReport(report);
+            }
+
+            resetTest() {
+                this.validator.testResults = [];
+                document.getElementById('results').innerHTML = '';
+                this.updateStats({ total: 0, passed: 0, failed: 0, passRate: '0%', totalDuration: '0ms' });
+                this.updateUI('测试已重置', 'info');
+            }
+
+            displayReport(report) {
+                // 更新统计
+                this.updateStats(report.summary);
+                
+                // 显示测试结果
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = report.tests.map(test => `
+                    <div class="test-item ${test.passed ? '' : 'fail'}">
+                        <div class="test-name">
+                            ${test.passed ? '✓' : '✗'} ${test.name}
+                            <span class="badge ${test.passed ? 'badge-success' : 'badge-error'}">
+                                ${test.duration}ms
+                            </span>
+                        </div>
+                        ${test.details ? `<div class="test-duration">
+                            ${Object.entries(test.details).slice(0, 2).map(([k, v]) => 
+                                `${k}: ${JSON.stringify(v)}`
+                            ).join(' | ')}
+                        </div>` : ''}
+                    </div>
+                `).join('');
+                
+                // 显示性能分析
+                if (report.performance) {
+                    console.log('📈 性能分析:', report.performance);
+                }
+                
+                // 显示建议
+                if (report.recommendations) {
+                    console.log('💡 优化建议:', report.recommendations);
+                }
+            }
+
+            updateStats(summary) {
+                document.getElementById('total').textContent = summary.total;
+                document.getElementById('passed').textContent = summary.passed;
+                document.getElementById('failed').textContent = summary.failed;
+                document.getElementById('passRate').textContent = summary.passRate;
+                document.getElementById('duration').textContent = summary.totalDuration;
+                
+                const passRate = parseFloat(summary.passRate);
+                document.getElementById('progress').style.width = passRate + '%';
+                
+                // 更新颜色
+                const passRateEl = document.getElementById('passRate');
+                if (passRate === 100) {
+                    passRateEl.style.color = '#4CAF50';
+                } else if (passRate >= 80) {
+                    passRateEl.style.color = '#FF9800';
+                } else {
+                    passRateEl.style.color = '#f44336';
+                }
+            }
+
+            showCompletionMessage(report) {
+                const passRate = parseFloat(report.summary.passRate);
+                const grade = passRate === 100 ? 'S' : passRate >= 90 ? 'A' : 
+                             passRate >= 80 ? 'B' : passRate >= 70 ? 'C' : 'D';
+                
+                this.add.text(400, 250, [
+                    '✅ 时间轴验证完成',
+                    '',
+                    `评级: ${grade}`,
+                    `通过率: ${report.summary.passRate}`,
+                    `总耗时: ${report.summary.totalDuration}`,
+                    '',
+                    '测试项目:',
+                    '✓ 时间刻度显示',
+                    '✓ 热区时间条显示',
+                    '✓ 播放头拖拽跳转',
+                    '✓ 点击时间轴跳转',
+                    '✓ 时间条拖拽调整',
+                    '✓ 时间条吸附',
+                    '✓ 时间标记功能',
+                    '✓ 时间范围选择',
+                    '✓ 缩略图预览',
+                    '✓ 音频波形显示',
+                    '✓ 虚拟滚动优化',
+                    '✓ 右键菜单',
+                    '✓ 键盘快捷键',
+                    '✓ 图层分组',
+                    '✓ 图层折叠展开',
+                    '',
+                    passRate === 100 ? '🎉 完美通过！' : '⚠️ 部分功能需优化'
+                ], {
+                    fontSize: '12px',
+                    color: passRate === 100 ? '#4CAF50' : '#FF9800',
+                    backgroundColor: '#000',
+                    padding: { x: 20, y: 12 },
+                    align: 'left'
+                }).setOrigin(0.5).setDepth(1000);
+            }
+
+            updateUI(message, type = 'info') {
+                console.log(message);
+            }
+        }
+
+        new Phaser.Game({
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game',
+            scene: TimelineFinalScene,
+            backgroundColor: '#2d2d2d'
+        });
+    </script>
+</body>
+</html>

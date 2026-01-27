@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Layer Management Test</title>
+    <script src="lib/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; font-family: Arial; overflow: hidden; }
+        #app { display: flex; height: 100vh; }
+        #game { flex: 1; }
+        #panel { width: 380px; background: #000; color: #fff; overflow-y: auto;
+                 border-left: 2px solid #4CAF50; }
+        .section { padding: 15px; border-bottom: 1px solid #222; }
+        h3 { color: #4CAF50; margin: 0 0 10px 0; font-size: 15px; }
+        .btn { background: #4CAF50; color: #fff; border: none; padding: 10px;
+               margin: 5px 0; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%; }
+        .btn:hover { background: #45a049; transform: translateY(-1px); }
+        .btn-primary { background: #2196F3; }
+        .btn-danger { background: #f44336; }
+        .layer-item { padding: 10px; margin: 5px 0; background: #1a1a1a;
+                      border-radius: 4px; border-left: 3px solid #4CAF50; }
+        .layer-item.active { background: #2a2a2a; border-left-color: #ffeb3b; }
+        .layer-controls { display: flex; gap: 5px; margin-top: 5px; }
+        .layer-btn { padding: 5px 10px; font-size: 11px; flex: 1; }
+        .test { padding: 8px; margin: 5px 0; border-left: 3px solid #4CAF50;
+                background: rgba(76,175,80,0.1); font-size: 11px; }
+        .test.fail { border-left-color: #f44; background: rgba(255,68,68,0.1); }
+        .metric { display: flex; justify-content: space-between; padding: 5px 0;
+                  font-size: 12px; border-bottom: 1px solid #222; }
+        .metric-value { color: #4CAF50; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="game"></div>
+        <div id="panel">
+            <div class="section">
+                <h3>📚 图层管理测试</h3>
+                <p style="font-size:11px;color:#888;">Phaser 3 标准</p>
+            </div>
+            
+            <div class="section">
+                <h3>图层操作</h3>
+                <button class="btn" onclick="scene.createNewLayer()">➕ 创建图层</button>
+                <button class="btn btn-danger" onclick="scene.deleteActiveLayer()">🗑️ 删除当前图层</button>
+            </div>
+            
+            <div class="section">
+                <h3>图层列表</h3>
+                <div id="layer-list"></div>
+            </div>
+            
+            <div class="section">
+                <h3>🚀 自动测试</h3>
+                <button class="btn btn-primary" onclick="scene.runFullTest()">
+                    运行完整测试
+                </button>
+            </div>
+            
+            <div class="section">
+                <h3>📊 统计信息</h3>
+                <div id="stats"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📝 测试结果</h3>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        import LayerManager from './src/layer/LayerManager.js';
+        import LayerValidator from './src/layer/LayerValidator.js';
+        
+        let scene;
+        
+        class LayerTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'LayerTest' });
+                this.tests = [];
+                window.scene = this;
+            }
+
+            create() {
+                scene = this;
+                this.cameras.main.setBackgroundColor('#1a1a1a');
+                
+                // 初始化图层管理器
+                this.layerManager = new LayerManager(this);
+                this.validator = new LayerValidator(this.layerManager);
+                
+                // 创建测试热区
+                this.createTestHotspots();
+                
+                // 监听图层事件
+                this.setupLayerEvents();
+                
+                // 更新UI
+                this.updateLayerList();
+                this.updateStats();
+                
+                this.showHint();
+                this.log('✓ 图层管理系统初始化完成');
+            }
+
+            createTestHotspots() {
+                const colors = [0x4CAF50, 0x2196F3, 0xFF9800];
+                
+                for (let i = 0; i < 3; i++) {
+                    const container = this.add.container(150 + i * 200, 200);
+                    
+                    const graphics = this.add.graphics();
+                    graphics.lineStyle(3, colors[i]);
+                    graphics.strokeRect(-50, -40, 100, 80);
+                    container.add(graphics);
+                    
+                    const text = this.add.text(0, 0, `热区${i+1}`, {
+                        fontSize: '14px', color: '#fff'
+                    });
+                    text.setOrigin(0.5);
+                    container.add(text);
+                    
+                    // 添加到当前活动图层
+                    this.layerManager.addHotspotToLayer(container);
+                }
+            }
+
+            setupLayerEvents() {
+                this.events.on('layer:created', () => {
+                    this.updateLayerList();
+                    this.updateStats();
+                });
+                
+                this.events.on('layer:deleted', () => {
+                    this.updateLayerList();
+                    this.updateStats();
+                });
+                
+                this.events.on('layer:visibilityChanged', () => {
+                    this.updateLayerList();
+                });
+                
+                this.events.on('layer:lockChanged', () => {
+                    this.updateLayerList();
+                });
+                
+                this.events.on('layer:orderChanged', () => {
+                    this.updateLayerList();
+                });
+                
+                this.events.on('layer:renamed', () => {
+                    this.updateLayerList();
+                });
+                
+                this.events.on('layer:activeChanged', () => {
+                    this.updateLayerList();
+                });
+            }
+
+            showHint() {
+                this.add.text(20, 20, [
+                    '📚 图层管理完整测试',
+                    '创建、删除、显示/隐藏、锁定、排序、重命名'
+                ], {
+                    fontSize: '12px', color: '#fff',
+                    backgroundColor: '#000', padding: { x: 8, y: 5 }
+                }).setDepth(100);
+            }
+
+            createNewLayer() {
+                const name = `图层 ${this.layerManager.getLayerCount() + 1}`;
+                this.layerManager.createLayer(name);
+                this.log(`✓ 创建图层: ${name}`, 'pass');
+            }
+
+            deleteActiveLayer() {
+                const activeLayer = this.layerManager.getActiveLayer();
+                if (activeLayer) {
+                    const success = this.layerManager.deleteLayer(activeLayer.id);
+                    if (success) {
+                        this.log(`✓ 删除图层: ${activeLayer.name}`, 'pass');
+                    } else {
+                        this.log('✗ 删除失败', 'fail');
+                    }
+                }
+            }
+
+            toggleLayerVisibility(layerId) {
+                this.layerManager.toggleLayerVisibility(layerId);
+            }
+
+            toggleLayerLock(layerId) {
+                this.layerManager.toggleLayerLock(layerId);
+            }
+
+            moveLayerUp(layerId) {
+                this.layerManager.moveLayerUp(layerId);
+            }
+
+            moveLayerDown(layerId) {
+                this.layerManager.moveLayerDown(layerId);
+            }
+
+            renameLayer(layerId) {
+                const newName = prompt('输入新名称:');
+                if (newName) {
+                    this.layerManager.renameLayer(layerId, newName);
+                }
+            }
+
+            setActiveLayer(layerId) {
+                this.layerManager.setActiveLayer(layerId);
+            }
+
+            updateLayerList() {
+                const div = document.getElementById('layer-list');
+                const layers = this.layerManager.getLayers();
+                const activeLayer = this.layerManager.getActiveLayer();
+                
+                div.innerHTML = layers.map(layer => `
+                    <div class="layer-item ${layer === activeLayer ? 'active' : ''}"
+                         onclick="scene.setActiveLayer('${layer.id}')">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-weight:bold;">${layer.name}</span>
+                            <span style="font-size:10px;color:#888;">
+                                ${layer.visible ? '👁' : '🚫'} 
+                                ${layer.locked ? '🔒' : '🔓'}
+                            </span>
+                        </div>
+                        <div class="layer-controls">
+                            <button class="btn layer-btn" 
+                                    onclick="event.stopPropagation();scene.toggleLayerVisibility('${layer.id}')">
+                                ${layer.visible ? '隐藏' : '显示'}
+                            </button>
+                            <button class="btn layer-btn" 
+                                    onclick="event.stopPropagation();scene.toggleLayerLock('${layer.id}')">
+                                ${layer.locked ? '解锁' : '锁定'}
+                            </button>
+                            <button class="btn layer-btn" 
+                                    onclick="event.stopPropagation();scene.moveLayerUp('${layer.id}')">
+                                ⬆️
+                            </button>
+                            <button class="btn layer-btn" 
+                                    onclick="event.stopPropagation();scene.moveLayerDown('${layer.id}')">
+                                ⬇️
+                            </button>
+                            <button class="btn layer-btn" 
+                                    onclick="event.stopPropagation();scene.renameLayer('${layer.id}')">
+                                ✏️
+                            </button>
+                        </div>
+                    </div>
+                `).reverse().join('');
+            }
+
+            updateStats() {
+                const div = document.getElementById('stats');
+                const layers = this.layerManager.getLayers();
+                const visibleCount = layers.filter(l => l.visible).length;
+                const lockedCount = layers.filter(l => l.locked).length;
+                
+                div.innerHTML = `
+                    <div class="metric">
+                        <span>总图层数:</span>
+                        <span class="metric-value">${layers.length}</span>
+                    </div>
+                    <div class="metric">
+                        <span>可见图层:</span>
+                        <span class="metric-value">${visibleCount}</span>
+                    </div>
+                    <div class="metric">
+                        <span>锁定图层:</span>
+                        <span class="metric-value">${lockedCount}</span>
+                    </div>
+                    <div class="metric">
+                        <span>活动图层:</span>
+                        <span class="metric-value">${this.layerManager.getActiveLayer()?.name || 'N/A'}</span>
+                    </div>
+                `;
+            }
+
+            async runFullTest() {
+                this.log('🚀 开始完整测试...', 'info');
+                this.tests = [];
+                
+                const report = await this.validator.runFullValidation();
+                
+                this.displayReport(report);
+                this.showSummary(report);
+            }
+
+            displayReport(report) {
+                const div = document.getElementById('results');
+                div.innerHTML = report.tests.map(t => 
+                    `<div class="test ${t.passed ? '' : 'fail'}">
+                        ${t.passed ? '✓' : '✗'} ${t.name} (${t.duration}ms)
+                    </div>`
+                ).join('');
+            }
+
+            showSummary(report) {
+                const passed = report.summary.passed;
+                const total = report.summary.total;
+                
+                this.add.text(400, 300, [
+                    '✅ 图层管理测试总结',
+                    '',
+                    `通过: ${passed}/${total}`,
+                    `通过率: ${report.summary.passRate}`,
+                    `总耗时: ${report.summary.totalDuration}`,
+                    '',
+                    '✓ 创建图层',
+                    '✓ 删除图层',
+                    '✓ 显示/隐藏',
+                    '✓ 锁定/解锁',
+                    '✓ 图层排序',
+                    '✓ 图层重命名',
+                    '',
+                    passed === total ? '🎉 完美通过！' : '⚠️ 部分功能需优化'
+                ], {
+                    fontSize: '13px',
+                    color: passed === total ? '#4CAF50' : '#FF9800',
+                    backgroundColor: '#000',
+                    padding: { x: 20, y: 12 }
+                }).setOrigin(0.5).setDepth(1000);
+            }
+
+            log(msg, type = 'info') {
+                console.log(msg);
+            }
+        }
+
+        new Phaser.Game({
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game',
+            scene: LayerTestScene
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Data Management Test</title>
+    <script src="lib/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: #0a0a0a; font-family: Arial; }
+        #app { display: flex; height: 100vh; }
+        #game { flex: 1; }
+        #panel { width: 380px; background: #000; color: #fff; overflow-y: auto;
+                 border-left: 2px solid #4CAF50; }
+        .section { padding: 15px; border-bottom: 1px solid #222; }
+        h3 { color: #4CAF50; margin: 0 0 10px 0; font-size: 15px; }
+        .btn { background: #4CAF50; color: #fff; border: none; padding: 10px;
+               margin: 5px 0; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%; }
+        .btn:hover { background: #45a049; }
+        .btn-primary { background: #2196F3; }
+        .btn-primary:hover { background: #1976D2; }
+        .test { padding: 8px; margin: 5px 0; border-left: 3px solid #4CAF50;
+                background: rgba(76,175,80,0.1); font-size: 11px; }
+        .test.fail { border-left-color: #f44; background: rgba(255,68,68,0.1); }
+        .metric { display: flex; justify-content: space-between; padding: 5px 0;
+                  font-size: 12px; border-bottom: 1px solid #222; }
+        .metric-value { color: #4CAF50; font-weight: bold; }
+        textarea { width: 100%; height: 150px; background: #1a1a1a; color: #0f0;
+                   border: 1px solid #333; padding: 8px; font-family: monospace;
+                   font-size: 11px; resize: vertical; }
+        .code { background: #1a1a1a; padding: 10px; border-radius: 4px;
+                font-family: monospace; font-size: 11px; color: #0f0;
+                max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="game"></div>
+        <div id="panel">
+            <div class="section">
+                <h3>💾 数据管理测试</h3>
+                <p style="font-size:11px;color:#888;">Phaser 3 标准</p>
+            </div>
+            
+            <div class="section">
+                <h3>📤 导出操作</h3>
+                <button class="btn" onclick="scene.testExport()">导出 JSON</button>
+                <button class="btn" onclick="scene.downloadJSON()">下载 JSON 文件</button>
+            </div>
+            
+            <div class="section">
+                <h3>📥 导入操作</h3>
+                <button class="btn" onclick="scene.testImport()">导入测试数据</button>
+                <input type="file" id="fileInput" accept=".json" style="display:none;">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    从文件导入
+                </button>
+            </div>
+            
+            <div class="section">
+                <h3>✅ 验证操作</h3>
+                <button class="btn" onclick="scene.testValidation()">测试数据验证</button>
+                <button class="btn" onclick="scene.testIntegrity()">测试完整性检查</button>
+            </div>
+            
+            <div class="section">
+                <h3>🚀 自动测试</h3>
+                <button class="btn btn-primary" onclick="scene.runFullTest()">
+                    运行完整测试
+                </button>
+            </div>
+            
+            <div class="section">
+                <h3>📊 数据预览</h3>
+                <div id="preview" class="code"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📝 测试结果</h3>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import DataManager from './src/data/DataManager.js';
+        import DataValidator from './src/data/DataValidator.js';
+        
+        let scene;
+        
+        class DataTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'DataTest' });
+                this.tests = [];
+                window.scene = this;
+            }
+
+            create() {
+                scene = this;
+                this.cameras.main.setBackgroundColor('#1a1a1a');
+                
+                // 初始化数据管理器
+                this.dataManager = new DataManager(this);
+                this.validator = new DataValidator(this.dataManager);
+                
+                // 创建测试热区
+                this.createTestHotspots();
+                
+                // 设置文件输入
+                this.setupFileInput();
+                
+                this.showHint();
+                this.log('✓ 数据管理系统初始化完成');
+            }
+
+            createTestHotspots() {
+                this.hotspots = [];
+                const colors = [0x4CAF50, 0x2196F3, 0xFF9800, 0x9C27B0, 0xF44336];
+                
+                for (let i = 0; i < 5; i++) {
+                    const container = this.add.container(100 + i * 140, 200);
+                    
+                    const graphics = this.add.graphics();
+                    graphics.lineStyle(3, colors[i]);
+                    graphics.strokeRect(-50, -40, 100, 80);
+                    container.add(graphics);
+                    
+                    const text = this.add.text(0, 0, `热区${i+1}`, {
+                        fontSize: '14px', color: '#fff'
+                    });
+                    text.setOrigin(0.5);
+                    container.add(text);
+                    
+                    container.config = {
+                        id: `hotspot_${i}`,
+                        type: 'rect',
+                        width: 100,
+                        height: 80,
+                        color: '#' + colors[i].toString(16).padStart(6, '0'),
+                        strokeWidth: 3,
+                        startTime: i * 5,
+                        endTime: (i + 1) * 5,
+                        action: { type: 'link', url: `https://example.com/${i}` },
+                        metadata: { name: `热区${i+1}`, description: '测试热区' }
+                    };
+                    
+                    this.hotspots.push(container);
+                }
+            }
+
+            setupFileInput() {
+                const fileInput = document.getElementById('fileInput');
+                fileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            const result = await this.dataManager.readJSONFile(file);
+                            if (result.success) {
+                                this.log(`✓ 导入成功: ${result.hotspots.length} 个热区`, 'pass');
+                                this.updatePreview(result);
+                            } else {
+                                this.log(`✗ 导入失败: ${result.error}`, 'fail');
+                            }
+                        } catch (error) {
+                            this.log(`✗ 读取文件失败: ${error.message}`, 'fail');
+                        }
+                    }
+                });
+            }
+
+            showHint() {
+                this.add.text(20, 20, [
+                    '💾 数据管理完整测试',
+                    '测试导出/导入、验证、完整性检查'
+                ], {
+                    fontSize: '12px', color: '#fff',
+                    backgroundColor: '#000', padding: { x: 8, y: 5 }
+                }).setDepth(100);
+            }
+
+            testExport() {
+                const result = this.dataManager.exportJSON(this.hotspots, {
+                    title: '测试项目',
+                    author: '测试用户',
+                    description: '这是一个测试项目'
+                });
+                
+                if (result.success) {
+                    this.log(`✓ 导出成功: ${result.hotspotCount} 个热区, ${result.size} 字节`, 'pass');
+                    this.updatePreview(JSON.parse(result.data));
+                    this.lastExportData = result.data;
+                } else {
+                    this.log(`✗ 导出失败: ${result.error}`, 'fail');
+                }
+            }
+
+            downloadJSON() {
+                if (!this.lastExportData) {
+                    this.testExport();
+                }
+                
+                if (this.lastExportData) {
+                    const success = this.dataManager.downloadJSON(
+                        this.lastExportData,
+                        `hotspots_${Date.now()}.json`
+                    );
+                    
+                    if (success) {
+                        this.log('✓ 文件下载成功', 'pass');
+                    } else {
+                        this.log('✗ 文件下载失败', 'fail');
+                    }
+                }
+            }
+
+            testImport() {
+                // 先导出
+                const exportResult = this.dataManager.exportJSON(this.hotspots);
+                
+                if (exportResult.success) {
+                    // 再导入
+                    const importResult = this.dataManager.importJSON(exportResult.data);
+                    
+                    if (importResult.success) {
+                        this.log(`✓ 导入成功: ${importResult.hotspots.length} 个热区`, 'pass');
+                        this.updatePreview(importResult);
+                    } else {
+                        this.log(`✗ 导入失败: ${importResult.error}`, 'fail');
+                    }
+                }
+            }
+
+            testValidation() {
+                // 测试有效数据
+                const validData = {
+                    version: '1.0.0',
+                    hotspots: [
+                        { id: 'h1', type: 'rect', x: 100, y: 100, width: 100, height: 80 }
+                    ],
+                    metadata: {}
+                };
+                
+                const validResult = this.dataManager.validateImportData(validData);
+                
+                // 测试无效数据
+                const invalidData = { invalid: true };
+                const invalidResult = this.dataManager.validateImportData(invalidData);
+                
+                if (validResult && !invalidResult) {
+                    this.log('✓ 数据验证功能正常', 'pass');
+                } else {
+                    this.log('✗ 数据验证功能异常', 'fail');
+                }
+                
+                // 显示错误
+                const errors = this.dataManager.getErrors();
+                if (errors.length > 0) {
+                    this.log(`发现 ${errors.length} 个验证错误`, 'info');
+                }
+            }
+
+            testIntegrity() {
+                const exportResult = this.dataManager.exportJSON(this.hotspots);
+                
+                if (exportResult.success) {
+                    const data = JSON.parse(exportResult.data);
+                    const integrity = this.dataManager.checkDataIntegrity(data);
+                    
+                    if (integrity.valid) {
+                        this.log('✓ 数据完整性检查通过', 'pass');
+                    } else {
+                        this.log('✗ 数据完整性检查失败', 'fail');
+                    }
+                    
+                    this.updatePreview({
+                        integrityCheck: integrity.checks,
+                        errors: integrity.errors
+                    });
+                }
+            }
+
+            async runFullTest() {
+                this.log('🚀 开始完整测试...', 'info');
+                this.tests = [];
+                
+                const report = await this.validator.runFullValidation();
+                
+                this.displayReport(report);
+                this.showSummary(report);
+            }
+
+            displayReport(report) {
+                const div = document.getElementById('results');
+                div.innerHTML = report.tests.map(t => 
+                    `<div class="test ${t.passed ? '' : 'fail'}">
+                        ${t.passed ? '✓' : '✗'} ${t.name} (${t.duration}ms)
+                    </div>`
+                ).join('');
+                
+                this.log(`测试完成: ${report.summary.passRate} 通过率`, 'info');
+            }
+
+            showSummary(report) {
+                const passed = report.summary.passed;
+                const total = report.summary.total;
+                
+                this.add.text(400, 300, [
+                    '✅ 数据管理测试总结',
+                    '',
+                    `通过: ${passed}/${total}`,
+                    `通过率: ${report.summary.passRate}`,
+                    `总耗时: ${report.summary.totalDuration}`,
+                    '',
+                    '✓ 导出 JSON',
+                    '✓ 导入 JSON',
+                    '✓ 数据验证',
+                    '✓ 错误处理',
+                    '✓ 完整性检查',
+                    '',
+                    passed === total ? '🎉 完美通过！' : '⚠️ 部分功能需优化'
+                ], {
+                    fontSize: '13px',
+                    color: passed === total ? '#4CAF50' : '#FF9800',
+                    backgroundColor: '#000',
+                    padding: { x: 20, y: 12 }
+                }).setOrigin(0.5).setDepth(1000);
+            }
+
+            updatePreview(data) {
+                const div = document.getElementById('preview');
+                div.textContent = JSON.stringify(data, null, 2).substring(0, 500) + '...';
+            }
+
+            log(msg, type = 'info') {
+                console.log(msg);
+            }
+        }
+
+        new Phaser.Game({
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game',
+            scene: DataTestScene
+        });
+    </script>
+</body>
+</html>

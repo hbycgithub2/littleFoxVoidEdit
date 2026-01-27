@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试可拖拽面板</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .test-area {
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 测试可拖拽面板</h1>
+    
+    <div class="test-area">
+        <h2>测试说明：</h2>
+        <p>1. 点击下面的按钮显示面板</p>
+        <p>2. 鼠标点击面板任意位置拖拽移动</p>
+        <p>3. 可以移动到屏幕任意位置</p>
+        <p>4. 打开控制台查看日志</p>
+    </div>
+    
+    <div class="test-area">
+        <h2>操作按钮：</h2>
+        <button id="showPanel1">显示面板 1（左上角）</button>
+        <button id="hidePanel1">隐藏面板 1</button>
+        <br>
+        <button id="showPanel2">显示面板 2（右上角）</button>
+        <button id="hidePanel2">隐藏面板 2</button>
+    </div>
+    
+    <script type="module">
+        import DraggableInfoPanel from './src/dom/DraggableInfoPanel.js';
+        
+        // 创建面板 1
+        const panel1 = new DraggableInfoPanel({
+            id: 'test-panel-1',
+            title: '🎨 测试面板 1',
+            content: '这是左上角的面板\n可以拖拽移动到任意位置',
+            x: 10,
+            y: 10,
+            visible: false
+        });
+        
+        // 创建面板 2
+        const panel2 = new DraggableInfoPanel({
+            id: 'test-panel-2',
+            title: '⌨️ 测试面板 2',
+            content: '这是右上角的面板\n也可以拖拽移动',
+            x: window.innerWidth - 220,
+            y: 10,
+            visible: false
+        });
+        
+        // 按钮事件
+        document.getElementById('showPanel1').addEventListener('click', () => {
+            panel1.show();
+            console.log('✅ 面板 1 已显示');
+        });
+        
+        document.getElementById('hidePanel1').addEventListener('click', () => {
+            panel1.hide();
+            console.log('❌ 面板 1 已隐藏');
+        });
+        
+        document.getElementById('showPanel2').addEventListener('click', () => {
+            panel2.show();
+            console.log('✅ 面板 2 已显示');
+        });
+        
+        document.getElementById('hidePanel2').addEventListener('click', () => {
+            panel2.hide();
+            console.log('❌ 面板 2 已隐藏');
+        });
+        
+        console.log('🧪 测试页面已加载');
+        console.log('📦 面板 1:', panel1);
+        console.log('📦 面板 2:', panel2);
+    </script>
+</body>
+</html>

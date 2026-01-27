@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Align Final Test - Phaser 3</title>
+    <script src="lib/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #1a1a1a; font-family: 'Segoe UI', Arial; overflow: hidden; }
+        #container { display: flex; height: 100vh; }
+        #game-area { flex: 1; }
+        #control-panel { width: 350px; background: #000; color: #fff; 
+                         overflow-y: auto; border-left: 2px solid #2196F3; }
+        .panel-section { padding: 15px; border-bottom: 1px solid #333; }
+        .panel-section h3 { color: #2196F3; margin-bottom: 10px; font-size: 16px; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; }
+        .btn { background: #2196F3; color: #fff; border: none; padding: 8px 12px;
+               border-radius: 4px; cursor: pointer; font-size: 11px; flex: 1; min-width: 100px; }
+        .btn:hover { background: #1976D2; }
+        .btn-success { background: #4CAF50; }
+        .btn-success:hover { background: #45a049; }
+        .btn-danger { background: #f44336; }
+        .btn-danger:hover { background: #da190b; }
+        .test-result { padding: 8px; margin: 5px 0; border-left: 3px solid #4CAF50;
+                       background: rgba(76, 175, 80, 0.1); font-size: 12px; }
+        .test-result.fail { border-left-color: #f44336; background: rgba(244, 67, 54, 0.1); }
+        .metric { display: flex; justify-content: space-between; padding: 5px 0;
+                  font-size: 12px; border-bottom: 1px solid #222; }
+        .metric-value { color: #4CAF50; font-weight: bold; }
+        #report { max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="game-area"></div>
+        <div id="control-panel">
+            <div class="panel-section">
+                <h3>🎯 对齐分布终极测试</h3>
+                <p style="font-size:12px; color:#888;">完全遵循 Phaser 3 官方标准</p>
+            </div>
+            
+            <div class="panel-section">
+                <h3>选择操作</h3>
+                <div class="btn-group">
+                    <button class="btn" onclick="scene.selectAll()">全选 (A)</button>
+                    <button class="btn" onclick="scene.clearSel()">清除</button>
+                    <button class="btn" onclick="scene.selectRandom(3)">随机3个</button>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>对齐操作</h3>
+                <div class="btn-group">
+                    <button class="btn" onclick="scene.alignLeft()">← 左 (1)</button>
+                    <button class="btn" onclick="scene.alignRight()">→ 右 (2)</button>
+                    <button class="btn" onclick="scene.alignCenterH()">↔ 水平中 (3)</button>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="scene.alignTop()">↑ 顶 (4)</button>
+                    <button class="btn" onclick="scene.alignBottom()">↓ 底 (5)</button>
+                    <button class="btn" onclick="scene.alignCenterV()">↕ 垂直中 (6)</button>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>分布操作</h3>
+                <div class="btn-group">
+                    <button class="btn" onclick="scene.distributeH()">水平分布 (7)</button>
+                    <button class="btn" onclick="scene.distributeV()">垂直分布 (8)</button>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>特殊操作</h3>
+                <div class="btn-group">
+                    <button class="btn" onclick="scene.alignCanvas()">画布居中 (9)</button>
+                    <button class="btn btn-danger" onclick="scene.reset()">重置 (R)</button>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>自动化测试</h3>
+                <button class="btn btn-success" onclick="scene.runValidation()" 
+                        style="width:100%; padding:12px; font-size:13px;">
+                    🚀 运行完整验证测试
+                </button>
+            </div>
+            
+            <div class="panel-section">
+                <h3>测试报告</h3>
+                <div id="report"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import AlignDistributeValidator from './src/utils/AlignDistributeValidator.js';
+        
+        let scene;
+        
+        class AlignFinalScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'AlignFinal' });
+                this.hotspots = [];
+                this.selected = [];
+                this.initialPos = [];
+                window.scene = this;
+            }
+
+            create() {
+                scene = this;
+                this.cameras.main.setBackgroundColor('#2d2d2d');
+                
+                this.createGrid();
+                this.createHotspots();
+                this.setupKeyboard();
+                this.validator = new AlignDistributeValidator(this);
+                
+                this.showHint();
+                this.log('✓ 系统初始化完成');
+            }
+
+            createGrid() {
+                const g = this.add.graphics();
+                g.lineStyle(1, 0x333333, 0.3);
+                for (let x = 0; x <= 800; x += 50) g.lineBetween(x, 0, x, 600);
+                for (let y = 0; y <= 600; y += 50) g.lineBetween(0, y, 800, y);
+                g.setDepth(-1);
+            }
+
+            createHotspots() {
+                const pos = [
+                    {x:100,y:100}, {x:250,y:130}, {x:400,y:110}, {x:550,y:120},
+                    {x:120,y:250}, {x:280,y:280}, {x:430,y:260}, {x:580,y:270},
+                    {x:150,y:400}, {x:300,y:430}, {x:450,y:410}, {x:600,y:420}
+                ];
+
+                pos.forEach((p, i) => {
+                    const c = this.add.container(p.x, p.y);
+                    const g = this.add.graphics();
+                    g.lineStyle(3, 0x00ff00);
+                    g.strokeRect(-40, -30, 80, 60);
+                    c.add(g);
+                    
+                    const t = this.add.text(0, 0, (i+1).toString(), {
+                        fontSize: '16px', color: '#fff', fontStyle: 'bold'
+                    });
+                    t.setOrigin(0.5);
+                    c.add(t);
+                    
+                    c.setData('g', g);
+                    c.setData('sel', false);
+                    
+                    g.setInteractive(
+                        new Phaser.Geom.Rectangle(-40, -30, 80, 60),
+                        Phaser.Geom.Rectangle.Contains
+                    );
+                    g.on('pointerdown', () => {
+                        if (this.input.keyboard.addKey('SHIFT').isDown) {
+                            this.toggle(c);
+                        } else {
+                            this.clearSel();
+                            this.sel(c);
+                        }
+                    });
+                    
+                    this.hotspots.push(c);
+                    this.initialPos.push({x: p.x, y: p.y});
+                });
+            }
+
+            toggle(h) {
+                if (h.getData('sel')) this.desel(h);
+                else this.sel(h);
+            }
+
+            sel(h) {
+                h.setData('sel', true);
+                this.selected.push(h);
+                const g = h.getData('g');
+                g.clear();
+                g.lineStyle(5, 0xffff00);
+                g.strokeRect(-40, -30, 80, 60);
+            }
+
+            desel(h) {
+                h.setData('sel', false);
+                this.selected = this.selected.filter(s => s !== h);
+                const g = h.getData('g');
+                g.clear();
+                g.lineStyle(3, 0x00ff00);
+                g.strokeRect(-40, -30, 80, 60);
+            }
+
+            clearSel() {
+                [...this.selected].forEach(h => this.desel(h));
+            }
+
+            selectAll() {
+                this.clearSel();
+                this.hotspots.forEach(h => this.sel(h));
+                this.log('✓ 全选 ' + this.hotspots.length + ' 个');
+            }
+
+            selectRandom(n) {
+                this.clearSel();
+                const shuffled = Phaser.Utils.Array.Shuffle([...this.hotspots]);
+                for (let i = 0; i < n && i < shuffled.length; i++) {
+                    this.sel(shuffled[i]);
+                }
+                this.log('✓ 随机选择 ' + n + ' 个');
+            }
+
+            reset() {
+                this.hotspots.forEach((h, i) => {
+                    h.x = this.initialPos[i].x;
+                    h.y = this.initialPos[i].y;
+                });
+                this.log('✓ 已重置位置');
+            }
+
+            alignLeft() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个', 'warn');
+                const minX = Math.min(...this.selected.map(h => h.x));
+                this.selected.forEach(h => h.x = minX);
+                this.log('✓ 左对齐完成');
+            }
+
+            alignRight() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个', 'warn');
+                const maxX = Math.max(...this.selected.map(h => h.x));
+                this.selected.forEach(h => h.x = maxX);
+                this.log('✓ 右对齐完成');
+            }
+
+            alignCenterH() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个', 'warn');
+                const xs = this.selected.map(h => h.x);
+                const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+                this.selected.forEach(h => h.x = cx);
+                this.log('✓ 水平居中完成');
+            }
+
+            alignTop() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个', 'warn');
+                const minY = Math.min(...this.selected.map(h => h.y));
+                this.selected.forEach(h => h.y = minY);
+                this.log('✓ 顶部对齐完成');
+            }
+
+            alignBottom() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个', 'warn');
+                const maxY = Math.max(...this.selected.map(h => h.y));
+                this.selected.forEach(h => h.y = maxY);
+                this.log('✓ 底部对齐完成');
+            }
+
+            alignCenterV() {
+                if (this.selected.length < 2) return this.log('⚠️ 需要至少2个', 'warn');
+                const ys = this.selected.map(h => h.y);
+                const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+                this.selected.forEach(h => h.y = cy);
+                this.log('✓ 垂直居中完成');
+            }
+
+            distributeH() {
+                if (this.selected.length < 3) return this.log('⚠️ 需要至少3个', 'warn');
+                const sorted = [...this.selected].sort((a, b) => a.x - b.x);
+                const minX = sorted[0].x;
+                const maxX = sorted[sorted.length - 1].x;
+                const spacing = (maxX - minX) / (sorted.length - 1);
+                sorted.forEach((h, i) => h.x = minX + spacing * i);
+                this.log('✓ 水平分布完成');
+            }
+
+            distributeV() {
+                if (this.selected.length < 3) return this.log('⚠️ 需要至少3个', 'warn');
+                const sorted = [...this.selected].sort((a, b) => a.y - b.y);
+                const minY = sorted[0].y;
+                const maxY = sorted[sorted.length - 1].y;
+                const spacing = (maxY - minY) / (sorted.length - 1);
+                sorted.forEach((h, i) => h.y = minY + spacing * i);
+                this.log('✓ 垂直分布完成');
+            }
+
+            alignCanvas() {
+                if (this.selected.length === 0) return this.log('⚠️ 请先选择', 'warn');
+                const cx = 400, cy = 300;
+                if (this.selected.length === 1) {
+                    this.selected[0].x = cx;
+                    this.selected[0].y = cy;
+                } else {
+                    const xs = this.selected.map(h => h.x);
+                    const ys = this.selected.map(h => h.y);
+                    const ox = cx - (Math.min(...xs) + Math.max(...xs)) / 2;
+                    const oy = cy - (Math.min(...ys) + Math.max(...ys)) / 2;
+                    this.selected.forEach(h => { h.x += ox; h.y += oy; });
+                }
+                this.log('✓ 画布居中完成');
+            }
+
+            runValidation() {
+                this.log('🚀 开始验证测试...', 'info');
+                this.reset();
+                this.selectAll();
+                
+                const report = this.validator.runFullValidation(this.hotspots);
+                this.displayReport(report);
+            }
+
+            displayReport(report) {
+                const div = document.getElementById('report');
+                div.innerHTML = `
+                    <div class="metric">
+                        <span>总测试数:</span>
+                        <span class="metric-value">${report.summary.total}</span>
+                    </div>
+                    <div class="metric">
+                        <span>通过:</span>
+                        <span class="metric-value">${report.summary.passed}</span>
+                    </div>
+                    <div class="metric">
+                        <span>失败:</span>
+                        <span style="color:#f44336;">${report.summary.failed}</span>
+                    </div>
+                    <div class="metric">
+                        <span>通过率:</span>
+                        <span class="metric-value">${report.summary.passRate}</span>
+                    </div>
+                    <div class="metric">
+                        <span>总耗时:</span>
+                        <span class="metric-value">${report.summary.totalDuration}</span>
+                    </div>
+                    <div class="metric">
+                        <span>平均耗时:</span>
+                        <span class="metric-value">${report.summary.avgDuration}</span>
+                    </div>
+                    <div style="margin-top:10px;">
+                        ${report.tests.map(t => `
+                            <div class="test-result ${t.passed ? '' : 'fail'}">
+                                ${t.passed ? '✓' : '✗'} ${t.name}: ${t.duration}ms
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                this.log('✅ 验证完成！通过率: ' + report.summary.passRate, 'success');
+            }
+
+            showHint() {
+                this.add.text(10, 10, [
+                    '🎯 对齐分布终极测试',
+                    'Shift+点击多选 | 数字键1-9操作 | A全选 | R重置'
+                ], {
+                    fontSize: '12px', color: '#fff',
+                    backgroundColor: '#000', padding: { x: 8, y: 5 }
+                }).setDepth(100);
+            }
+
+            setupKeyboard() {
+                this.input.keyboard.on('keydown-ONE', () => this.alignLeft());
+                this.input.keyboard.on('keydown-TWO', () => this.alignRight());
+                this.input.keyboard.on('keydown-THREE', () => this.alignCenterH());
+                this.input.keyboard.on('keydown-FOUR', () => this.alignTop());
+                this.input.keyboard.on('keydown-FIVE', () => this.alignBottom());
+                this.input.keyboard.on('keydown-SIX', () => this.alignCenterV());
+                this.input.keyboard.on('keydown-SEVEN', () => this.distributeH());
+                this.input.keyboard.on('keydown-EIGHT', () => this.distributeV());
+                this.input.keyboard.on('keydown-NINE', () => this.alignCanvas());
+                this.input.keyboard.on('keydown-A', () => this.selectAll());
+                this.input.keyboard.on('keydown-R', () => this.reset());
+            }
+
+            log(msg, type = 'info') {
+                console.log(msg);
+            }
+        }
+
+        new Phaser.Game({
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-area',
+            scene: AlignFinalScene,
+            backgroundColor: '#2d2d2d'
+        });
+    </script>
+</body>
+</html>

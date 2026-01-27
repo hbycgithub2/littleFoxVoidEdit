@@ -31,6 +31,23 @@ export default class CircleHotspot extends Hotspot {
     }
     
     /**
+     * 获取边界框（遵循 Phaser 官方标准）
+     * @returns {object} 包含 left, right, top, bottom, width, height 的对象
+     */
+    getBounds() {
+        const r = this.config.radius;
+        const diameter = r * 2;
+        return {
+            left: this.x - r,
+            right: this.x + r,
+            top: this.y - r,
+            bottom: this.y + r,
+            width: diameter,
+            height: diameter
+        };
+    }
+    
+    /**
      * 更新手柄位置（圆形使用 4 个方向手柄）
      * 遵循 Phaser 3 官方标准
      */
@@ -66,8 +83,9 @@ export default class CircleHotspot extends Hotspot {
      * @param {number} handleIndex - 手柄索引（0-7）
      * @param {number} dragX - 拖拽到的 X 坐标
      * @param {number} dragY - 拖拽到的 Y 坐标
+     * @param {Phaser.Input.Pointer} pointer - 指针对象
      */
-    onHandleDrag(handleIndex, dragX, dragY) {
+    onHandleDrag(handleIndex, dragX, dragY, pointer) {
         // 计算新半径（从圆心到拖拽点的距离）
         const dx = dragX - this.x;
         const dy = dragY - this.y;

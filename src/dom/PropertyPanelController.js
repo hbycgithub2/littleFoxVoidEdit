@@ -17,6 +17,20 @@ export default class PropertyPanelController {
         this.propEndTime = document.getElementById('propEndTime');
         this.propColor = document.getElementById('propColor');
         this.deleteBtn = document.getElementById('deleteBtn');
+        this.setStartTimeBtn = document.getElementById('setStartTimeBtn');
+        this.setEndTimeBtn = document.getElementById('setEndTimeBtn');
+        
+        // 调试信息
+        console.log('📋 PropertyPanelController 元素初始化:', {
+            propertyPanel: !!this.propertyPanel,
+            propWord: !!this.propWord,
+            propStartTime: !!this.propStartTime,
+            propEndTime: !!this.propEndTime,
+            propColor: !!this.propColor,
+            deleteBtn: !!this.deleteBtn,
+            setStartTimeBtn: !!this.setStartTimeBtn,
+            setEndTimeBtn: !!this.setEndTimeBtn
+        });
         
         // 记录旧值（用于撤销/重做）
         this.oldValues = new Map();
@@ -56,6 +70,10 @@ export default class PropertyPanelController {
                     this.updatePropertyWithCommand('startTime', oldValue, newValue);
                 }
             });
+            // 双击时间输入框跳转到该时间点
+            this.propStartTime.addEventListener('dblclick', (e) => {
+                this.jumpToTime(parseFloat(e.target.value));
+            });
         }
         
         if (this.propEndTime) {
@@ -68,6 +86,10 @@ export default class PropertyPanelController {
                 if (oldValue !== newValue) {
                     this.updatePropertyWithCommand('endTime', oldValue, newValue);
                 }
+            });
+            // 双击时间输入框跳转到该时间点
+            this.propEndTime.addEventListener('dblclick', (e) => {
+                this.jumpToTime(parseFloat(e.target.value));
             });
         }
         
@@ -90,8 +112,118 @@ export default class PropertyPanelController {
             });
         }
         
+        // 设置开始时间为当前视频时间
+        if (this.setStartTimeBtn) {
+            this.setStartTimeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔘 点击开始时间按钮');
+                this.setTimeFromVideo('startTime');
+            });
+            console.log('✅ 开始时间按钮事件已绑定');
+        } else {
+            console.warn('⚠️ 开始时间按钮未找到');
+        }
+        
+        // 设置结束时间为当前视频时间
+        if (this.setEndTimeBtn) {
+            this.setEndTimeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔘 点击结束时间按钮');
+                this.setTimeFromVideo('endTime');
+            });
+            console.log('✅ 结束时间按钮事件已绑定');
+        } else {
+            console.warn('⚠️ 结束时间按钮未找到');
+        }
+        
         this.scene.events.on('selection:changed', (data) => {
             this.update(data);
+        });
+    }
+    
+    /**
+     * 从视频获取当前时间并设置到输入框
+     */
+    setTimeFromVideo(property) {
+        const video = document.getElementById('video');
+        if (!video) {
+            console.warn('⚠️ 视频元素未找到');
+            return;
+        }
+        
+        const currentTime = parseFloat(video.currentTime.toFixed(1));
+        
+        // 记录旧值
+        const inputElement = property === 'startTime' ? this.propStartTime : this.propEndTime;
+        const oldValue = parseFloat(inputElement.value);
+        
+        // 边界检查：开始时间不应大于结束时间
+        if (property === 'startTime') {
+            const endTime = parseFloat(this.propEndTime.value);
+            if (currentTime > endTime) {
+                // 自动调整结束时间
+                this.propEndTime.value = currentTime + 5;
+                console.log(`⚠️ 开始时间大于结束时间，自动调整结束时间为 ${currentTime + 5}s`);
+            }
+        } else if (property === 'endTime') {
+            const startTime = parseFloat(this.propStartTime.value);
+            if (currentTime < startTime) {
+                console.warn(`⚠️ 结束时间 ${currentTime}s 小于开始时间 ${startTime}s`);
+                // 提示用户但仍然允许设置
+            }
+        }
+        
+        // 更新输入框
+        inputElement.value = currentTime;
+        
+        // 视觉反馈：按钮闪烁效果
+        const button = property === 'startTime' ? this.setStartTimeBtn : this.setEndTimeBtn;
+        if (button) {
+            button.style.transform = 'scale(1.2)';
+            button.style.background = 'rgba(76, 175, 80, 0.6)';
+            setTimeout(() => {
+                button.style.transform = '';
+                button.style.background = '';
+            }, 200);
+        }
+        
+        // 使用命令模式更新属性
+        if (oldValue !== currentTime) {
+            this.updatePropertyWithCommand(property, oldValue, currentTime);
+        }
+        
+        console.log(`📍 设置${property === 'startTime' ? '开始' : '结束'}时间: ${currentTime}s`);
+    }
+    
+    /**
+     * 跳转到指定时间（双击时间输入框时触发）
+     */
+    jumpToTime(time) {
+        const video = document.getElementById('video');
+        if (!video) {
+            console.warn('⚠️ 视频元素未找到');
+            return;
+        }
+        
+        if (isNaN(time) || time < 0) {
+            console.warn('⚠️ 无效的时间值:', time);
+            return;
+        }
+        
+        video.currentTime = time;
+        console.log(`⏩ 跳转到时间: ${time}s`);
+        
+        // 视觉反馈：高亮输入框
+        const inputs = [this.propStartTime, this.propEndTime];
+        inputs.forEach(input => {
+            if (input && parseFloat(input.value) === time) {
+                input.style.background = 'rgba(76, 175, 80, 0.3)';
+                setTimeout(() => {
+                    input.style.background = '';
+                }, 500);
+            }
         });
     }
     

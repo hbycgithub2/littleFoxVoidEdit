@@ -1,0 +1,73 @@
+/* View Menu Styles - Phaser Editor Style */
+
+.view-dropdown {
+    position: fixed;
+    background: #2d2d30;
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    min-width: 240px;
+    z-index: 10001;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+    color: #cccccc;
+}
+
+.view-menu-section {
+    padding: 4px 0;
+}
+
+.view-menu-title {
+    padding: 6px 12px;
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.view-menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.view-menu-item:hover {
+    background: #3e3e42;
+    color: #ffffff;
+}
+
+.view-menu-item:active {
+    background: #4e4e52;
+}
+
+.view-checkbox {
+    font-size: 14px;
+    width: 16px;
+    display: inline-block;
+}
+
+.view-menu-divider {
+    height: 1px;
+    background: #3e3e42;
+    margin: 4px 0;
+}
+
+/* View 按钮样式 */
+#viewMenuBtn {
+    font-size: 13px;
+    padding: 6px 12px;
+    min-width: 70px;
+}
+
+#viewMenuBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#viewMenuBtn:active {
+    background: rgba(255, 255, 255, 0.15);
+}

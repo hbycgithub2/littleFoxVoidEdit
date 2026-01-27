@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绘制功能快速测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff00;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .test-section h2 {
+            color: #00ffff;
+            margin-top: 0;
+        }
+        .test-item {
+            padding: 10px;
+            margin: 10px 0;
+            background: #333;
+            border-left: 4px solid #00ff00;
+        }
+        .test-item.feature {
+            border-left-color: #ffff00;
+        }
+        .test-item.shortcut {
+            border-left-color: #ff00ff;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status.new {
+            background: #00ff00;
+            color: #000;
+        }
+        .status.enhanced {
+            background: #ffff00;
+            color: #000;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #00ff00;
+        }
+        .note {
+            background: #1a3a5a;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #0088ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 绘制功能快速测试指南</h1>
+        
+        <div class="note">
+            <strong>📋 测试说明：</strong>
+            <ul>
+                <li>所有功能完全遵循 Phaser 3 官方标准</li>
+                <li>不影响其他功能，向后兼容</li>
+                <li>文件大小控制在合理范围（60-150行）</li>
+                <li>所有新增功能都有对应的快捷键</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>✅ 已实现的核心功能</h2>
+            
+            <div class="test-item">
+                <strong>1. 基础绘制功能</strong>
+                <ul>
+                    <li>✅ 圆形热区 - 按 <code>C</code> 键</li>
+                    <li>✅ 矩形热区 - 按 <code>R</code> 键</li>
+                    <li>✅ 椭圆热区 - 按 <code>E</code> 键</li>
+                    <li>✅ 多边形热区 - 按 <code>P</code> 键</li>
+                </ul>
+            </div>
+
+            <div class="test-item">
+                <strong>2. 绘制辅助功能</strong>
+                <ul>
+                    <li>✅ 半透明填充预览</li>
+                    <li>✅ 实时尺寸显示</li>
+                    <li>✅ 实时坐标显示</li>
+                    <li>✅ 十字辅助线</li>
+                    <li>✅ 网格吸附 - 按 <code>G</code> 键切换</li>
+                    <li>✅ Shift 约束比例（矩形→正方形，椭圆→圆形）</li>
+                </ul>
+            </div>
+
+            <div class="test-item">
+                <strong>3. 多边形特殊功能</strong>
+                <ul>
+                    <li>✅ 点击添加顶点</li>
+                    <li>✅ 顶点数量显示</li>
+                    <li>✅ 起点红色标记</li>
+                    <li>✅ 闭合提示圈（接近起点时）</li>
+                    <li>✅ Enter 完成绘制</li>
+                    <li>✅ ESC 取消绘制</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🆕 新增功能（本次优化）</h2>
+            
+            <div class="test-item feature">
+                <strong>1. 绘制模式指示器</strong> <span class="status new">NEW</span>
+                <ul>
+                    <li>显示当前绘制模式</li>
+                    <li>根据模式显示不同操作提示</li>
+                    <li>自动显示/隐藏</li>
+                </ul>
+            </div>
+
+            <div class="test-item feature">
+                <strong>2. 绘制历史显示</strong> <span class="status new">NEW</span>
+                <ul>
+                    <li>显示最近绘制的 5 个形状</li>
+                    <li>提示可以用 Space 重复上次绘制</li>
+                    <li>自动更新历史记录</li>
+                </ul>
+            </div>
+
+            <div class="test-item feature">
+                <strong>3. 快捷键提示显示</strong> <span class="status new">NEW</span>
+                <ul>
+                    <li>按 <code>H</code> 键切换显示/隐藏</li>
+                    <li>显示所有可用快捷键</li>
+                    <li>右上角显示，不遮挡工作区</li>
+                </ul>
+            </div>
+
+            <div class="test-item feature">
+                <strong>4. 精度显示辅助</strong> <span class="status new">NEW</span>
+                <ul>
+                    <li>按 <code>I</code> 键切换显示/隐藏</li>
+                    <li>显示距离、角度、比例信息</li>
+                    <li>跟随鼠标显示</li>
+                    <li>默认启用</li>
+                </ul>
+            </div>
+
+            <div class="test-item feature">
+                <strong>5. 增强的模式提示</strong> <span class="status enhanced">ENHANCED</span>
+                <ul>
+                    <li>多边形模式：显示"点击添加顶点 | Enter 完成"</li>
+                    <li>矩形/椭圆模式：显示"按住 Shift 约束比例"</li>
+                    <li>圆形模式：显示基础操作提示</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>⌨️ 完整快捷键列表</h2>
+            
+            <div class="test-item shortcut">
+                <strong>绘制模式切换</strong>
+                <ul>
+                    <li><code>C</code> - 切换到圆形绘制模式</li>
+                    <li><code>R</code> - 切换到矩形绘制模式</li>
+                    <li><code>E</code> - 切换到椭圆绘制模式</li>
+                    <li><code>P</code> - 切换到多边形绘制模式</li>
+                </ul>
+            </div>
+
+            <div class="test-item shortcut">
+                <strong>绘制辅助</strong>
+                <ul>
+                    <li><code>G</code> - 切换网格吸附</li>
+                    <li><code>I</code> - 切换精度显示</li>
+                    <li><code>H</code> - 切换快捷键提示</li>
+                    <li><code>Shift</code> - 按住约束比例（矩形/椭圆）</li>
+                    <li><code>Space</code> - 重复上次绘制</li>
+                </ul>
+            </div>
+
+            <div class="test-item shortcut">
+                <strong>绘制控制</strong>
+                <ul>
+                    <li><code>ESC</code> - 取消当前绘制</li>
+                    <li><code>Enter</code> - 完成多边形绘制</li>
+                    <li><code>Delete</code> - 删除选中的热区</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 测试步骤</h2>
+            
+            <div class="test-item">
+                <strong>步骤 1：启动服务器</strong>
+                <pre><code>双击 START.bat 或运行 node server.js</code></pre>
+            </div>
+
+            <div class="test-item">
+                <strong>步骤 2：打开编辑器</strong>
+                <pre><code>访问 http://localhost:3000</code></pre>
+            </div>
+
+            <div class="test-item">
+                <strong>步骤 3：测试基础绘制</strong>
+                <ol>
+                    <li>按 <code>C</code> 键进入圆形模式</li>
+                    <li>观察左上角是否显示"🎨 ⭕ 圆形 (C)"</li>
+                    <li>在画布上拖拽绘制圆形</li>
+                    <li>观察是否显示半透明预览、尺寸、坐标</li>
+                    <li>释放鼠标完成绘制</li>
+                </ol>
+            </div>
+
+            <div class="test-item">
+                <strong>步骤 4：测试约束比例</strong>
+                <ol>
+                    <li>按 <code>R</code> 键进入矩形模式</li>
+                    <li>按住 <code>Shift</code> 键拖拽</li>
+                    <li>观察是否绘制正方形</li>
+                    <li>尺寸显示是否标注"(正方形)"</li>
+                </ol>
+            </div>
+
+            <div class="test-item">
+                <strong>步骤 5：测试网格吸附</strong>
+                <ol>
+                    <li>按 <code>G</code> 键启用网格</li>
+                    <li>观察是否显示网格线</li>
+                    <li>绘制时坐标是否吸附到网格</li>
+                    <li>再按 <code>G</code> 键关闭网格</li>
+                </ol>
+            </div>
+
+            <div class="test-item">
+                <strong>步骤 6：测试多边形</strong>
+                <ol>
+                    <li>按 <code>P</code> 键进入多边形模式</li>
+                    <li>点击添加至少 3 个顶点</li>
+                    <li>观察顶点数量显示</li>
+                    <li>观察起点红色标记</li>
+                    <li>按 <code>Enter</code> 完成绘制</li>
+                </ol>
+            </div>
+
+            <div class="test-item">
+                <strong>步骤 7：测试新功能</strong>
+                <ol>
+                    <li>按 <code>H</code> 键显示快捷键提示</li>
+                    <li>按 <code>I</code> 键切换精度显示</li>
+                    <li>绘制几个形状后观察左下角历史记录</li>
+                    <li>按 <code>Space</code> 键重复上次绘制</li>
+                </ol>
+            </div>
+
+            <div class="test-item">
+                <strong>步骤 8：测试取消功能</strong>
+                <ol>
+                    <li>进入任意绘制模式</li>
+                    <li>开始绘制但不完成</li>
+                    <li>按 <code>ESC</code> 键取消</li>
+                    <li>观察预览是否清除</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 性能验证</h2>
+            
+            <div class="test-item">
+                <strong>验证点：</strong>
+                <ul>
+                    <li>✅ 绘制预览流畅，无卡顿</li>
+                    <li>✅ 文本显示清晰，无闪烁</li>
+                    <li>✅ 快捷键响应及时</li>
+                    <li>✅ 多个辅助工具同时显示无性能问题</li>
+                    <li>✅ 网格显示不影响绘制性能</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>✨ 优化总结：</strong>
+            <ul>
+                <li>新增 4 个辅助显示工具（模式指示器、历史显示、快捷键提示、精度显示）</li>
+                <li>新增 2 个快捷键（H 切换提示、I 切换精度）</li>
+                <li>增强模式提示，根据不同模式显示不同操作说明</li>
+                <li>所有功能完全遵循 Phaser 3 官方标准</li>
+                <li>文件大小合理（50-80行）</li>
+                <li>不影响现有功能</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

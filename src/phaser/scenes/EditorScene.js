@@ -18,6 +18,24 @@ import RenderOptimizer from '../../utils/RenderOptimizer.js';
 import MemoryOptimizer from '../../utils/MemoryOptimizer.js';
 import EventOptimizer from '../../utils/EventOptimizer.js';
 import LoadingManager from '../../utils/LoadingManager.js';
+import DrawingModeIndicator from '../../utils/DrawingModeIndicator.js';
+import DrawingHistoryDisplay from '../../utils/DrawingHistoryDisplay.js';
+import ShortcutHintDisplay from '../../utils/ShortcutHintDisplay.js';
+import DrawingStatusBar from '../../utils/DrawingStatusBar.js';
+import DrawingHelpPanel from '../../utils/DrawingHelpPanel.js';
+import BoxSelectionHelper from '../../utils/BoxSelectionHelper.js';
+import SelectionEnhancementHelper from '../../utils/SelectionEnhancementHelper.js';
+import SelectionVisualHelper from '../../utils/SelectionVisualHelper.js';
+import DragResizeHelper from '../../utils/DragResizeHelper.js';
+import DragResizeVisualHelper from '../../utils/DragResizeVisualHelper.js';
+import DragResizeShortcutHelper from '../../utils/DragResizeShortcutHelper.js';
+import DragSnapHelper from '../../utils/DragSnapHelper.js';
+import AdvancedDragHelper from '../../utils/AdvancedDragHelper.js';
+import DragResizeStatusIndicator from '../../utils/DragResizeStatusIndicator.js';
+import HistoryVisualHelper from '../../utils/HistoryVisualHelper.js';
+import ClipboardHelper from '../../utils/ClipboardHelper.js';
+import LayerPanelHelper from '../../utils/LayerPanelHelper.js';
+import StylePanelHelper from '../../utils/StylePanelHelper.js';
 
 export default class EditorScene extends Phaser.Scene {
     constructor() {
@@ -36,6 +54,7 @@ export default class EditorScene extends Phaser.Scene {
         this.alignmentManager = new AlignmentManager(this);
         
         // 初始化管理器（遵循 Phaser 官方标准）
+        // 注意：必须先初始化 DrawingManager，因为 PolygonDrawingManager 需要共享它的 gridSnapHelper
         this.drawingManager = new DrawingManager(this);
         this.polygonDrawingManager = new PolygonDrawingManager(this);
         this.inputManager = new InputManager(this);
@@ -48,6 +67,39 @@ export default class EditorScene extends Phaser.Scene {
         this.memoryOptimizer = new MemoryOptimizer(this);
         this.eventOptimizer = new EventOptimizer();
         this.loadingManager = new LoadingManager(this);
+        
+        // 初始化绘制辅助工具（遵循 Phaser 官方标准）
+        this.drawingModeIndicator = new DrawingModeIndicator(this);
+        this.drawingHistoryDisplay = new DrawingHistoryDisplay(this);
+        this.shortcutHintDisplay = new ShortcutHintDisplay(this);
+        this.drawingStatusBar = new DrawingStatusBar(this);
+        this.drawingHelpPanel = new DrawingHelpPanel(this);
+        
+        // 初始化选择辅助工具（遵循 Phaser 官方标准）
+        this.boxSelectionHelper = new BoxSelectionHelper(this);
+        this.selectionEnhancementHelper = new SelectionEnhancementHelper(this);
+        this.selectionVisualHelper = new SelectionVisualHelper(this);
+        
+        // 初始化拖拽缩放辅助工具（遵循 Phaser 官方标准）
+        this.dragResizeHelper = new DragResizeHelper(this);
+        this.dragResizeVisualHelper = new DragResizeVisualHelper(this);
+        this.dragResizeShortcutHelper = new DragResizeShortcutHelper(this);
+        this.dragSnapHelper = new DragSnapHelper(this);
+        this.advancedDragHelper = new AdvancedDragHelper(this);
+        this.dragResizeStatusIndicator = new DragResizeStatusIndicator(this);
+        
+        // 初始化历史记录可视化工具（遵循 Phaser 官方标准）
+        this.historyVisualHelper = new HistoryVisualHelper(this);
+        
+        // 初始化剪贴板工具（遵循 Phaser 官方标准）
+        this.clipboardHelper = new ClipboardHelper(this);
+        
+        // 初始化图层面板工具（遵循 Phaser 官方标准）
+        this.layerPanelHelper = new LayerPanelHelper(this);
+        
+        // 初始化样式面板工具（遵循 Phaser 官方标准）
+        this.stylePanelHelper = new StylePanelHelper(this);
+        
         // this.performanceMonitor.enable(); // 开发时启用
         
         // 初始化容器（遵循 Phaser 官方标准）
@@ -163,6 +215,11 @@ export default class EditorScene extends Phaser.Scene {
         
         // 优化拖拽性能（优先级 3）
         this.dragOptimizer.optimizeDrag(hotspot);
+        
+        // 增强缩放功能（支持 Shift 保持比例）
+        if (this.dragResizeHelper) {
+            this.dragResizeHelper.enhanceResize(hotspot);
+        }
         
         // 跟踪对象用于内存管理（优先级 3）
         this.memoryOptimizer.track(hotspot, (obj) => {
@@ -451,6 +508,78 @@ export default class EditorScene extends Phaser.Scene {
         
         if (this.canvasPointerController) {
             this.canvasPointerController.destroy();
+        }
+        
+        if (this.drawingModeIndicator) {
+            this.drawingModeIndicator.destroy();
+        }
+        
+        if (this.drawingHistoryDisplay) {
+            this.drawingHistoryDisplay.destroy();
+        }
+        
+        if (this.shortcutHintDisplay) {
+            this.shortcutHintDisplay.destroy();
+        }
+        
+        if (this.drawingStatusBar) {
+            this.drawingStatusBar.destroy();
+        }
+        
+        if (this.drawingHelpPanel) {
+            this.drawingHelpPanel.destroy();
+        }
+        
+        if (this.boxSelectionHelper) {
+            this.boxSelectionHelper.destroy();
+        }
+        
+        if (this.selectionEnhancementHelper) {
+            this.selectionEnhancementHelper.destroy();
+        }
+        
+        if (this.selectionVisualHelper) {
+            this.selectionVisualHelper.destroy();
+        }
+        
+        if (this.dragResizeHelper) {
+            this.dragResizeHelper.destroy();
+        }
+        
+        if (this.dragResizeVisualHelper) {
+            this.dragResizeVisualHelper.destroy();
+        }
+        
+        if (this.dragResizeShortcutHelper) {
+            this.dragResizeShortcutHelper.destroy();
+        }
+        
+        if (this.dragSnapHelper) {
+            this.dragSnapHelper.destroy();
+        }
+        
+        if (this.advancedDragHelper) {
+            this.advancedDragHelper.destroy();
+        }
+        
+        if (this.dragResizeStatusIndicator) {
+            this.dragResizeStatusIndicator.destroy();
+        }
+        
+        if (this.historyVisualHelper) {
+            this.historyVisualHelper.destroy();
+        }
+        
+        if (this.clipboardHelper) {
+            this.clipboardHelper.destroy();
+        }
+        
+        if (this.layerPanelHelper) {
+            this.layerPanelHelper.destroy();
+        }
+        
+        if (this.stylePanelHelper) {
+            this.stylePanelHelper.destroy();
         }
         
         console.log('EditorScene shutdown - 资源已清理');

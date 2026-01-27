@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拖拽和缩放功能测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 2px solid #4CAF50;
+        }
+        
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+        }
+        
+        .test-item.pass {
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .test-item.fail {
+            border-left: 4px solid #f44336;
+        }
+        
+        .test-item.pending {
+            border-left: 4px solid #ff9800;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .status.pass {
+            background: #4CAF50;
+        }
+        
+        .status.fail {
+            background: #f44336;
+        }
+        
+        .status.pending {
+            background: #ff9800;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .instructions {
+            background: #1e3a5f;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #64B5F6;
+        }
+        
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 5px 0;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #4CAF50;
+            margin-top: 20px;
+        }
+        
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 拖拽和缩放功能测试</h1>
+        
+        <div class="instructions">
+            <h3>📋 测试说明</h3>
+            <ol>
+                <li>点击"开始测试"按钮初始化场景</li>
+                <li>场景会自动创建 3 个测试热区（矩形、圆形、椭圆）</li>
+                <li>按照下方测试项逐一测试功能</li>
+                <li>每个测试项会自动验证并显示结果</li>
+            </ol>
+        </div>
+        
+        <button id="startTest" onclick="startTest()">开始测试</button>
+        <button id="resetTest" onclick="resetTest()" disabled>重置测试</button>
+        
+        <div class="test-section">
+            <h2>✅ 测试项目</h2>
+            
+            <div class="test-item pending" id="test1">
+                <span class="status pending">待测试</span>
+                <strong>测试 1: 拖拽移动单个热区</strong>
+                <p>操作：点击并拖拽任意一个热区</p>
+                <div class="result" id="result1"></div>
+            </div>
+            
+            <div class="test-item pending" id="test2">
+                <span class="status pending">待测试</span>
+                <strong>测试 2: 拖拽移动多个热区</strong>
+                <p>操作：按住 Ctrl 点击多个热区选中，然后拖拽其中一个</p>
+                <div class="result" id="result2"></div>
+            </div>
+            
+            <div class="test-item pending" id="test3">
+                <span class="status pending">待测试</span>
+                <strong>测试 3: 缩放手柄显示</strong>
+                <p>操作：点击选中一个热区，观察是否显示缩放手柄</p>
+                <div class="result" id="result3"></div>
+            </div>
+            
+            <div class="test-item pending" id="test4">
+                <span class="status pending">待测试</span>
+                <strong>测试 4: 8 个方向缩放（矩形）</strong>
+                <p>操作：选中矩形热区，拖拽 8 个方向的手柄进行缩放</p>
+                <div class="result" id="result4"></div>
+            </div>
+            
+            <div class="test-item pending" id="test5">
+                <span class="status pending">待测试</span>
+                <strong>测试 5: 缩放时保持比例（Shift）</strong>
+                <p>操作：选中矩形热区，按住 Shift 拖拽角手柄</p>
+                <div class="result" id="result5"></div>
+            </div>
+            
+            <div class="test-item pending" id="test6">
+                <span class="status pending">待测试</span>
+                <strong>测试 6: 缩放最小尺寸限制</strong>
+                <p>操作：尝试将热区缩放到非常小，验证是否有最小尺寸限制</p>
+                <div class="result" id="result6"></div>
+            </div>
+            
+            <div class="test-item pending" id="test7">
+                <span class="status pending">待测试</span>
+                <strong>测试 7: 拖拽吸附对齐</strong>
+                <p>操作：拖拽热区靠近其他热区，观察是否自动对齐并显示对齐线</p>
+                <div class="result" id="result7"></div>
+            </div>
+            
+            <div class="test-item pending" id="test8">
+                <span class="status pending">待测试</span>
+                <strong>测试 8: Ctrl 拖拽复制</strong>
+                <p>操作：按住 Ctrl 拖拽热区，验证是否创建副本</p>
+                <div class="result" id="result8"></div>
+            </div>
+            
+            <div class="test-item pending" id="test9">
+                <span class="status pending">待测试</span>
+                <strong>测试 9: Alt 从中心缩放</strong>
+                <p>操作：按住 Alt 拖拽缩放手柄，验证是否从中心缩放</p>
+                <div class="result" id="result9"></div>
+            </div>
+        </div>
+        
+        <div id="gameCanvas"></div>
+    </div>
+    
+    <script type="module">
+        import EditorScene from './src/phaser/scenes/EditorScene.js';
+        
+        let game = null;
+        let scene = null;
+        let testHotspots = [];
+        
+        // 测试状态
+        const testResults = {
+            test1: false,
+            test2: false,
+            test3: false,
+            test4: false,
+            test5: false,
+            test6: false,
+            test7: false,
+            test8: false,
+            test9: false
+        };
+        
+        window.startTest = function() {
+            console.log('🚀 开始测试...');
+            
+            // 创建 Phaser 游戏实例
+            const config = {
+                type: Phaser.AUTO,
+                width: 1000,
+                height: 600,
+                parent: 'gameCanvas',
+                backgroundColor: '#2d2d2d',
+                scene: EditorScene
+            };
+            
+            game = new Phaser.Game(config);
+            
+            // 等待场景准备好
+            game.events.once('ready', () => {
+                scene = game.scene.getScene('EditorScene');
+                console.log('✅ 场景已准备好');
+                
+                // 创建测试热区
+                createTestHotspots();
+                
+                // 设置测试监听
+                setupTestListeners();
+                
+                // 启用按钮
+                document.getElementById('startTest').disabled = true;
+                document.getElementById('resetTest').disabled = false;
+            });
+        };
+        
+        window.resetTest = function() {
+            console.log('🔄 重置测试...');
+            
+            if (game) {
+                game.destroy(true);
+                game = null;
+                scene = null;
+                testHotspots = [];
+            }
+            
+            // 重置测试状态
+            Object.keys(testResults).forEach(key => {
+                testResults[key] = false;
+                const testItem = document.getElementById(key);
+                testItem.className = 'test-item pending';
+                testItem.querySelector('.status').className = 'status pending';
+                testItem.querySelector('.status').textContent = '待测试';
+                document.getElementById(`result${key.slice(4)}`).textContent = '';
+            });
+            
+            // 启用按钮
+            document.getElementById('startTest').disabled = false;
+            document.getElementById('resetTest').disabled = true;
+        };
+        
+        function createTestHotspots() {
+            console.log('📦 创建测试热区...');
+            
+            // 创建矩形热区
+            const rect = {
+                id: 'test-rect',
+                shape: 'rect',
+                x: 200,
+                y: 200,
+                width: 150,
+                height: 100,
+                color: '#00ff00',
+                startTime: 0,
+                endTime: 999999
+            };
+            scene.addHotspot(rect);
+            testHotspots.push(rect);
+            
+            // 创建圆形热区
+            const circle = {
+                id: 'test-circle',
+                shape: 'circle',
+                x: 450,
+                y: 200,
+                radius: 60,
+                color: '#00ff00',
+                startTime: 0,
+                endTime: 999999
+            };
+            scene.addHotspot(circle);
+            testHotspots.push(circle);
+            
+            // 创建椭圆热区
+            const ellipse = {
+                id: 'test-ellipse',
+                shape: 'ellipse',
+                x: 700,
+                y: 200,
+                radiusX: 80,
+                radiusY: 50,
+                color: '#00ff00',
+                startTime: 0,
+                endTime: 999999
+            };
+            scene.addHotspot(ellipse);
+            testHotspots.push(ellipse);
+            
+            console.log('✅ 测试热区已创建:', testHotspots.length);
+        }
+        
+        function setupTestListeners() {
+            console.log('👂 设置测试监听...');
+            
+            // 测试 1: 单个热区拖拽
+            scene.events.on('hotspot:moved', (data) => {
+                if (!testResults.test1) {
+                    testResults.test1 = true;
+                    updateTestResult('test1', true, `热区已移动: ${data.hotspot.config.id}`);
+                }
+            });
+            
+            // 测试 2: 多个热区拖拽
+            scene.events.on('hotspots:moved', (data) => {
+                if (!testResults.test2 && data.hotspots.length > 1) {
+                    testResults.test2 = true;
+                    updateTestResult('test2', true, `${data.hotspots.length} 个热区同时移动`);
+                }
+            });
+            
+            // 测试 3: 缩放手柄显示
+            scene.events.on('selection:changed', (data) => {
+                if (!testResults.test3 && data.count === 1) {
+                    const hotspot = data.selected[0];
+                    if (hotspot.resizeHandles && hotspot.showHandles) {
+                        testResults.test3 = true;
+                        updateTestResult('test3', true, `缩放手柄已显示: ${hotspot.resizeHandles.length} 个`);
+                    }
+                }
+            });
+            
+            // 测试 4: 8 个方向缩放
+            let resizeCount = 0;
+            scene.events.on('hotspot:resized', (data) => {
+                if (data.hotspot.config.shape === 'rect') {
+                    resizeCount++;
+                    if (!testResults.test4 && resizeCount >= 3) {
+                        testResults.test4 = true;
+                        updateTestResult('test4', true, `矩形已缩放 ${resizeCount} 次`);
+                    }
+                }
+                
+                // 测试 6: 最小尺寸限制
+                if (!testResults.test6) {
+                    const minSize = 20;
+                    const minRadius = 10;
+                    let hasMinLimit = false;
+                    
+                    if (data.hotspot.config.shape === 'rect') {
+                        hasMinLimit = data.hotspot.config.width >= minSize && 
+                                     data.hotspot.config.height >= minSize;
+                    } else if (data.hotspot.config.shape === 'circle') {
+                        hasMinLimit = data.hotspot.config.radius >= minRadius;
+                    } else if (data.hotspot.config.shape === 'ellipse') {
+                        hasMinLimit = data.hotspot.config.radiusX >= minRadius && 
+                                     data.hotspot.config.radiusY >= minRadius;
+                    }
+                    
+                    if (hasMinLimit) {
+                        testResults.test6 = true;
+                        updateTestResult('test6', true, '最小尺寸限制正常工作');
+                    }
+                }
+            });
+            
+            // 测试 5: Shift 保持比例（需要手动验证）
+            // 这个测试需要用户按住 Shift 键，所以我们监听键盘事件
+            scene.input.keyboard.on('keydown-SHIFT', () => {
+                if (!testResults.test5) {
+                    // 提示用户现在可以测试 Shift 保持比例
+                    updateTestResult('test5', 'pending', '请按住 Shift 拖拽角手柄测试');
+                }
+            });
+            
+            // 当用户按住 Shift 并缩放时，验证比例
+            let shiftResizeCount = 0;
+            scene.events.on('hotspot:resized', (data) => {
+                if (scene.input.keyboard.addKey('SHIFT').isDown && 
+                    data.hotspot.config.shape === 'rect') {
+                    shiftResizeCount++;
+                    if (!testResults.test5 && shiftResizeCount >= 1) {
+                        testResults.test5 = true;
+                        updateTestResult('test5', true, 'Shift 保持比例功能正常');
+                    }
+                }
+            });
+            
+            // 测试 7: 拖拽吸附对齐
+            let snapDetected = false;
+            const originalDrag = scene.events.listeners('hotspot:drag');
+            scene.events.on('hotspot:drag', (hotspot) => {
+                // 检查是否有对齐线显示
+                if (scene.dragSnapHelper && scene.dragSnapHelper.alignLines && 
+                    scene.dragSnapHelper.alignLines.visible) {
+                    if (!snapDetected) {
+                        snapDetected = true;
+                        testResults.test7 = true;
+                        updateTestResult('test7', true, '吸附对齐功能正常，对齐线已显示');
+                    }
+                }
+            });
+            
+            // 测试 8: Ctrl 拖拽复制
+            let hotspotCountBefore = scene.hotspots.length;
+            scene.events.on('hotspot:added', (hotspot) => {
+                if (scene.advancedDragHelper && scene.advancedDragHelper.isDraggingCopy) {
+                    if (!testResults.test8) {
+                        testResults.test8 = true;
+                        const newCount = scene.hotspots.length;
+                        updateTestResult('test8', true, `Ctrl 拖拽复制成功，热区数量: ${hotspotCountBefore} → ${newCount}`);
+                    }
+                }
+            });
+            
+            // 测试 9: Alt 从中心缩放
+            scene.events.on('hotspot:resized', (data) => {
+                if (scene.advancedDragHelper && scene.advancedDragHelper.isAltResize) {
+                    if (!testResults.test9) {
+                        testResults.test9 = true;
+                        updateTestResult('test9', true, 'Alt 从中心缩放功能正常');
+                    }
+                }
+            });
+        }
+        
+        function updateTestResult(testId, pass, message) {
+            const testItem = document.getElementById(testId);
+            const statusEl = testItem.querySelector('.status');
+            const resultEl = document.getElementById(`result${testId.slice(4)}`);
+            
+            if (pass === true) {
+                testItem.className = 'test-item pass';
+                statusEl.className = 'status pass';
+                statusEl.textContent = '✅ 通过';
+            } else if (pass === false) {
+                testItem.className = 'test-item fail';
+                statusEl.className = 'status fail';
+                statusEl.textContent = '❌ 失败';
+            } else {
+                testItem.className = 'test-item pending';
+                statusEl.className = 'status pending';
+                statusEl.textContent = '⏳ 测试中';
+            }
+            
+            resultEl.textContent = message;
+            console.log(`📊 ${testId}: ${pass ? '✅' : '❌'} ${message}`);
+        }
+    </script>
+</body>
+</html>

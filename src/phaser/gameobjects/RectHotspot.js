@@ -32,6 +32,23 @@ export default class RectHotspot extends Hotspot {
     }
     
     /**
+     * 获取边界框（遵循 Phaser 官方标准）
+     * @returns {object} 包含 left, right, top, bottom, width, height 的对象
+     */
+    getBounds() {
+        const w = this.config.width / 2;
+        const h = this.config.height / 2;
+        return {
+            left: this.x - w,
+            right: this.x + w,
+            top: this.y - h,
+            bottom: this.y + h,
+            width: this.config.width,
+            height: this.config.height
+        };
+    }
+    
+    /**
      * 更新手柄位置（矩形使用全部 8 个手柄）
      * 遵循 Phaser 3 官方标准
      */
@@ -67,8 +84,9 @@ export default class RectHotspot extends Hotspot {
      * @param {number} handleIndex - 手柄索引（0-7）
      * @param {number} dragX - 拖拽到的 X 坐标
      * @param {number} dragY - 拖拽到的 Y 坐标
+     * @param {Phaser.Input.Pointer} pointer - 指针对象
      */
-    onHandleDrag(handleIndex, dragX, dragY) {
+    onHandleDrag(handleIndex, dragX, dragY, pointer) {
         const w = this.config.width / 2;
         const h = this.config.height / 2;
         
