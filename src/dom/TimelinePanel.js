@@ -155,6 +155,7 @@ export default class TimelinePanel {
         this.canvas.addEventListener('mouseleave', (e) => this.onMouseLeave(e));
         this.canvas.addEventListener('wheel', (e) => this.onWheel(e));
         this.canvas.addEventListener('contextmenu', (e) => this.onContextMenu(e));
+        this.canvas.addEventListener('dblclick', (e) => this.onDoubleClick(e));
         
         // 键盘快捷键
         this.setupKeyboardShortcuts();
@@ -192,6 +193,34 @@ export default class TimelinePanel {
             if (e.key === 'l' || e.key === 'L') {
                 e.preventDefault();
                 this.rangeController.toggleLoop();
+            }
+            
+            // 新增：Space 键 - 播放选中热区片段
+            if (e.key === ' ' && !e.ctrlKey && !e.shiftKey) {
+                const selected = this.selectionController.getSelectedIds();
+                if (selected.length === 1) {
+                    e.preventDefault();
+                    const hotspots = this.scene.registry.get('hotspots') || [];
+                    const hotspot = hotspots.find(h => h.id === Array.from(selected)[0]);
+                    if (hotspot) {
+                        this.rangeController.setRange(hotspot.startTime, hotspot.endTime);
+                        this.rangeController.startLoop();
+                    }
+                }
+            }
+            
+            // 新增：Enter 键 - 跳转到选中热区开始
+            if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+                const selected = this.selectionController.getSelectedIds();
+                if (selected.length === 1) {
+                    e.preventDefault();
+                    const hotspots = this.scene.registry.get('hotspots') || [];
+                    const hotspot = hotspots.find(h => h.id === Array.from(selected)[0]);
+                    if (hotspot) {
+                        this.game.events.emit('video:seek', hotspot.startTime);
+                        this.flashHotspot(hotspot);
+                    }
+                }
             }
         };
         
@@ -573,6 +602,65 @@ export default class TimelinePanel {
     }
     
     /**
+     * 双击事件处理（遵循 Phaser 标准）
+     */
+    onDoubleClick(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // 考虑虚拟滚动偏移
+        const scrollY = this.virtualScrollController ? this.virtualScrollController.scrollY : 0;
+        
+        // 检测是否双击了热区条
+        const hotspot = this.layerGroupController.getHotspotAtPosition(x, y + scrollY);
+        
+        if (hotspot) {
+            // 跳转到热区开始时间
+            this.game.events.emit('video:seek', hotspot.startTime);
+            
+            // 发送 Phaser 事件
+            this.scene.events.emit('timeline:hotspot:doubleClick', {
+                hotspotId: hotspot.id,
+                startTime: hotspot.startTime,
+                endTime: hotspot.endTime
+            });
+            
+            // 视觉反馈：闪烁效果
+            this.flashHotspot(hotspot);
+        }
+    }
+    
+    /**
+     * 热区闪烁效果（视觉反馈 - 优化版）
+     * @param {object} hotspot - 热区配置
+     */
+    flashHotspot(hotspot) {
+        // 临时存储闪烁状态
+        if (!this.flashingHotspots) {
+            this.flashingHotspots = new Set();
+        }
+        
+        this.flashingHotspots.add(hotspot.id);
+        
+        // 使用动画帧实现脉冲效果（更流畅）
+        let flashCount = 0;
+        const maxFlashes = 3;
+        const flashInterval = 100;
+        
+        const flashTimer = setInterval(() => {
+            flashCount++;
+            this.render();
+            
+            if (flashCount >= maxFlashes * 2) {
+                clearInterval(flashTimer);
+                this.flashingHotspots.delete(hotspot.id);
+                this.render();
+            }
+        }, flashInterval);
+    }
+    
+    /**
      * 右键菜单
      */
     onContextMenu(e) {
@@ -714,6 +802,7 @@ export default class TimelinePanel {
             this.canvas.removeEventListener('mouseleave', this.onMouseLeave);
             this.canvas.removeEventListener('wheel', this.onWheel);
             this.canvas.removeEventListener('contextmenu', this.onContextMenu);
+            this.canvas.removeEventListener('dblclick', this.onDoubleClick);
         }
         
         // 移除键盘事件监听

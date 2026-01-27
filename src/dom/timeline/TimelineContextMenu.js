@@ -111,6 +111,11 @@ export default class TimelineContextMenu {
             { type: 'separator' },
             { label: '分割', icon: '✂️', action: 'split', shortcut: '' },
             { type: 'separator' },
+            { label: '跳转到开始', icon: '⏩', action: 'jumpToStart', shortcut: '' },
+            { label: '跳转到结束', icon: '⏭️', action: 'jumpToEnd', shortcut: '' },
+            { label: '播放此片段', icon: '🔁', action: 'playSegment', shortcut: '' },
+            { label: '复制时间范围', icon: '📋', action: 'copyTimeRange', shortcut: '' },
+            { type: 'separator' },
             { label: '属性', icon: '⚙️', action: 'properties', shortcut: '' }
         ];
         
@@ -225,6 +230,18 @@ export default class TimelineContextMenu {
                 break;
             case 'split':
                 this.handleSplit();
+                break;
+            case 'jumpToStart':
+                this.handleJumpToStart();
+                break;
+            case 'jumpToEnd':
+                this.handleJumpToEnd();
+                break;
+            case 'playSegment':
+                this.handlePlaySegment();
+                break;
+            case 'copyTimeRange':
+                this.handleCopyTimeRange();
                 break;
             case 'properties':
                 this.handleProperties();
@@ -423,6 +440,138 @@ export default class TimelineContextMenu {
         
         // 发送事件
         this.scene.events.emit('timeline:contextmenu:selectAll');
+    }
+    
+    /**
+     * 跳转到热区开始时间（遵循 Phaser 标准）
+     */
+    handleJumpToStart() {
+        if (!this.targetHotspot) return;
+        
+        // 使用 Phaser 事件系统跳转
+        this.timeline.game.events.emit('video:seek', this.targetHotspot.startTime);
+        
+        // 发送事件
+        this.scene.events.emit('timeline:contextmenu:jumpToStart', {
+            hotspotId: this.targetHotspot.id,
+            time: this.targetHotspot.startTime
+        });
+        
+        // Toast 提示
+        if (window.toast) {
+            window.toast.info(`跳转到 ${this.targetHotspot.startTime.toFixed(1)}s`);
+        }
+    }
+    
+    /**
+     * 跳转到热区结束时间（遵循 Phaser 标准）
+     */
+    handleJumpToEnd() {
+        if (!this.targetHotspot) return;
+        
+        // 使用 Phaser 事件系统跳转
+        this.timeline.game.events.emit('video:seek', this.targetHotspot.endTime);
+        
+        // 发送事件
+        this.scene.events.emit('timeline:contextmenu:jumpToEnd', {
+            hotspotId: this.targetHotspot.id,
+            time: this.targetHotspot.endTime
+        });
+        
+        // Toast 提示
+        if (window.toast) {
+            window.toast.info(`跳转到 ${this.targetHotspot.endTime.toFixed(1)}s`);
+        }
+    }
+    
+    /**
+     * 播放热区片段（循环播放）（遵循 Phaser 标准）
+     */
+    handlePlaySegment() {
+        if (!this.targetHotspot) return;
+        
+        // 使用 TimelineRangeController 设置循环播放区域
+        this.timeline.rangeController.setRange(
+            this.targetHotspot.startTime,
+            this.targetHotspot.endTime
+        );
+        this.timeline.rangeController.startLoop();
+        
+        // 发送事件
+        this.scene.events.emit('timeline:contextmenu:playSegment', {
+            hotspotId: this.targetHotspot.id,
+            startTime: this.targetHotspot.startTime,
+            endTime: this.targetHotspot.endTime
+        });
+        
+        // Toast 提示
+        if (window.toast) {
+            const duration = this.targetHotspot.endTime - this.targetHotspot.startTime;
+            window.toast.success(`循环播放片段 (${duration.toFixed(1)}s)`);
+        }
+    }
+    
+    /**
+     * 复制时间范围到剪贴板（遵循 Phaser 标准）
+     */
+    handleCopyTimeRange() {
+        if (!this.targetHotspot) return;
+        
+        const startTime = this.targetHotspot.startTime.toFixed(1);
+        const endTime = this.targetHotspot.endTime.toFixed(1);
+        const duration = (this.targetHotspot.endTime - this.targetHotspot.startTime).toFixed(1);
+        const text = `开始: ${startTime}s | 结束: ${endTime}s | 时长: ${duration}s`;
+        
+        // 复制到系统剪贴板
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                // 发送事件
+                this.scene.events.emit('timeline:contextmenu:copyTimeRange', {
+                    hotspotId: this.targetHotspot.id,
+                    text: text
+                });
+                
+                // Toast 提示
+                if (window.toast) {
+                    window.toast.success('时间范围已复制');
+                }
+            }).catch(err => {
+                console.error('复制失败:', err);
+                if (window.toast) {
+                    window.toast.error('复制失败');
+                }
+            });
+        } else {
+            // 降级方案：使用旧的 execCommand
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                // 发送事件
+                this.scene.events.emit('timeline:contextmenu:copyTimeRange', {
+                    hotspotId: this.targetHotspot.id,
+                    text: text
+                });
+                
+                // Toast 提示
+                if (window.toast) {
+                    window.toast.success('时间范围已复制');
+                }
+            } catch (err) {
+                console.error('复制失败:', err);
+                document.body.removeChild(textarea);
+                if (window.toast) {
+                    window.toast.error('复制失败');
+                }
+            }
+        }
     }
     
     /**

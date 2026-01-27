@@ -17,6 +17,10 @@ export default class LayerGroupController {
         // 图层折叠状态（layerId -> boolean）
         this.collapsedLayers = new Map();
         
+        // 性能优化：热区位置缓存
+        this.hotspotPositionCache = new Map();
+        this.cacheInvalidated = true;
+        
         // 图层颜色（默认颜色）
         this.layerColors = [
             '#00ff00',  // 绿色
@@ -54,6 +58,9 @@ export default class LayerGroupController {
         const isCollapsed = this.collapsedLayers.get(layerId) || false;
         this.collapsedLayers.set(layerId, !isCollapsed);
         
+        // 使缓存失效
+        this.invalidateCache();
+        
         // 触发重绘
         this.timeline.render();
     }
@@ -72,7 +79,13 @@ export default class LayerGroupController {
      * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
      */
     drawLayerGroups(ctx) {
-        if (!this.scene) return;
+        if (!this.scene) {
+            console.error('❌ LayerGroupController: scene 未初始化');
+            return;
+        }
+        
+        // 使缓存失效（每次绘制时重建）
+        this.invalidateCache();
         
         const layers = this.scene.layerManager.getLayers();
         const hotspots = this.scene.registry.get('hotspots') || [];
@@ -175,9 +188,16 @@ export default class LayerGroupController {
         // 使用图层颜色或热区自定义颜色
         const color = config.color || this.getLayerColor(layer.id);
         
+        // 检查是否正在播放此热区（高亮效果）
+        const currentTime = this.timeline.currentTime;
+        const isPlaying = currentTime >= config.startTime && currentTime <= config.endTime;
+        
+        // 检查是否正在闪烁（双击反馈）
+        const isFlashing = this.timeline.flashingHotspots && this.timeline.flashingHotspots.has(config.id);
+        
         // 热区条背景
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = isFlashing ? 0.9 : 0.6;
         ctx.fillRect(x1, y, width, this.barHeight);
         ctx.globalAlpha = 1.0;
         
@@ -186,10 +206,28 @@ export default class LayerGroupController {
             this.timeline.thumbnailController.drawThumbnail(ctx, config, x1, y, width, this.barHeight);
         }
         
-        // 边框
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x1, y, width, this.barHeight);
+        // 边框（播放时高亮 + 脉冲效果）
+        if (isPlaying) {
+            // 计算脉冲效果（使用时间戳实现动画）
+            const pulseIntensity = Math.abs(Math.sin(Date.now() / 200)) * 0.5 + 0.5;
+            ctx.strokeStyle = `rgba(255, 255, 0, ${pulseIntensity})`;
+            ctx.lineWidth = 3 + pulseIntensity;
+            ctx.strokeRect(x1 - 1, y - 1, width + 2, this.barHeight + 2);
+            
+            // 添加外发光效果
+            ctx.shadowColor = '#ffff00';
+            ctx.shadowBlur = 10 * pulseIntensity;
+            ctx.strokeRect(x1 - 1, y - 1, width + 2, this.barHeight + 2);
+            ctx.shadowBlur = 0;
+        } else if (isFlashing) {
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x1 - 1, y - 1, width + 2, this.barHeight + 2);
+        } else {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x1, y, width, this.barHeight);
+        }
         
         // 文字（如果有缩略图，文字向右偏移）
         const hasThumb = this.timeline.thumbnailController && 
@@ -318,5 +356,84 @@ export default class LayerGroupController {
         }
         
         return null;
+    }
+    
+    /**
+     * 获取指定位置的热区（用于双击、悬停等交互 - 优化版）
+     * @param {number} x - Canvas 内的 X 坐标
+     * @param {number} y - Canvas 内的 Y 坐标
+     * @returns {object|null} 热区配置或 null
+     */
+    getHotspotAtPosition(x, y) {
+        if (!this.scene) return null;
+        
+        // 如果缓存失效，重建缓存
+        if (this.cacheInvalidated) {
+            this.rebuildPositionCache();
+        }
+        
+        const hotspots = this.scene.registry.get('hotspots') || [];
+        
+        for (const config of hotspots) {
+            // 从缓存获取 Y 坐标
+            const barY = this.hotspotPositionCache.get(config.id);
+            
+            if (barY === undefined) continue; // 图层折叠时跳过
+            
+            // 计算热区的 X 范围
+            const x1 = config.startTime * this.timeline.scale;
+            const x2 = config.endTime * this.timeline.scale;
+            
+            // 检查是否在热区范围内
+            if (x >= x1 && x <= x2 && y >= barY && y <= barY + this.barHeight) {
+                return config;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 重建热区位置缓存（性能优化）
+     */
+    rebuildPositionCache() {
+        this.hotspotPositionCache.clear();
+        
+        if (!this.scene) return;
+        
+        const layers = this.scene.layerManager.getLayers();
+        const hotspots = this.scene.registry.get('hotspots') || [];
+        let currentY = this.scaleHeight + 10;
+        
+        for (const layer of layers) {
+            currentY += this.layerHeaderHeight;
+            
+            // 如果图层折叠，跳过
+            if (this.isLayerCollapsed(layer.id)) {
+                continue;
+            }
+            
+            // 查找该图层的热区
+            const layerHotspots = hotspots.filter(h => h.layerId === layer.id);
+            
+            for (const hotspot of layerHotspots) {
+                this.hotspotPositionCache.set(hotspot.id, currentY);
+                currentY += this.barHeight + this.barGap;
+            }
+            
+            // 空图层提示高度
+            if (layerHotspots.length === 0) {
+                currentY += 20;
+            }
+        }
+        
+        this.cacheInvalidated = false;
+    }
+    
+    /**
+     * 使缓存失效（在图层变化时调用）
+     */
+    invalidateCache() {
+        this.cacheInvalidated = true;
     }
 }

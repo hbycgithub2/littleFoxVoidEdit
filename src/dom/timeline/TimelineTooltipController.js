@@ -85,12 +85,24 @@ export default class TimelineTooltipController {
             return this.formatPlayheadTooltip(time);
         }
         
-        // 2. 检测热区时间条
-        // 需要考虑虚拟滚动的偏移
+        // 2. 检测热区时间条（优先使用 LayerGroupController 的方法）
         const scrollY = this.timeline.virtualScrollController ? this.timeline.virtualScrollController.scrollY : 0;
-        const target = this.timeline.dragController.hitTest(x, y + scrollY);
-        if (target) {
-            return this.formatHotspotTooltip(target.hotspot, target.handle);
+        const hotspot = this.timeline.layerGroupController.getHotspotAtPosition(x, y + scrollY);
+        
+        if (hotspot) {
+            // 检测是否在手柄上
+            const x1 = hotspot.startTime * this.timeline.scale;
+            const x2 = hotspot.endTime * this.timeline.scale;
+            const handleWidth = 5;
+            
+            let handle = null;
+            if (Math.abs(x - x1) < handleWidth) {
+                handle = 'start';
+            } else if (Math.abs(x - x2) < handleWidth) {
+                handle = 'end';
+            }
+            
+            return this.formatHotspotTooltip(hotspot, handle);
         }
         
         // 3. 检测时间刻度
@@ -115,9 +127,9 @@ export default class TimelineTooltipController {
     }
     
     /**
-     * 格式化热区工具提示
+     * 格式化热区工具提示（增强版 - 显示详细信息）
      * @param {object} hotspot - 热区配置
-     * @param {string} handle - 手柄类型（start/end）
+     * @param {string} handle - 手柄类型（start/end/null）
      * @returns {string} 格式化的内容
      */
     formatHotspotTooltip(hotspot, handle) {
@@ -132,14 +144,20 @@ export default class TimelineTooltipController {
         const durationStr = this.formatTime(duration);
         
         let content = `📍 ${name}\n`;
-        content += `开始: ${startTimeStr} (帧 ${startFrame})\n`;
-        content += `结束: ${endTimeStr} (帧 ${endFrame})\n`;
-        content += `持续: ${durationStr} (${frames} 帧)`;
+        content += `━━━━━━━━━━━━━━━━━━━━\n`;
+        content += `⏱️  开始: ${startTimeStr} (帧 ${startFrame})\n`;
+        content += `⏱️  结束: ${endTimeStr} (帧 ${endFrame})\n`;
+        content += `⏳ 时长: ${durationStr} (${frames} 帧)\n`;
+        
+        // 添加操作提示
+        content += `━━━━━━━━━━━━━━━━━━━━\n`;
         
         if (handle === 'start') {
-            content += `\n\n💡 拖拽调整开始时间`;
+            content += `💡 拖拽调整开始时间`;
         } else if (handle === 'end') {
-            content += `\n\n💡 拖拽调整结束时间`;
+            content += `💡 拖拽调整结束时间`;
+        } else {
+            content += `💡 双击跳转 | 右键菜单`;
         }
         
         return content;

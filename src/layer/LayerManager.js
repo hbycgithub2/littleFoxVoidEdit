@@ -254,6 +254,11 @@ export default class LayerManager {
         
         layer.hotspots.push(hotspot);
         
+        // ✅ 关键修复：设置热区的 layerId
+        if (hotspot.config) {
+            hotspot.config.layerId = layer.id;
+        }
+        
         // 添加到图层容器
         if (layer.container && hotspot.setParent) {
             layer.container.add(hotspot);

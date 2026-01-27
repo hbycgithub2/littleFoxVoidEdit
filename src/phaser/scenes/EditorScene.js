@@ -250,6 +250,10 @@ export default class EditorScene extends Phaser.Scene {
             : this.layerManager.getLayers()[0];
         
         if (targetLayer) {
+            // ✅ 关键修复：直接设置 layerId（确保一定被设置）
+            hotspot.config.layerId = targetLayer.id;
+            
+            // 添加到图层管理器
             this.layerManager.addHotspotToLayer(hotspot, targetLayer.id);
         }
         

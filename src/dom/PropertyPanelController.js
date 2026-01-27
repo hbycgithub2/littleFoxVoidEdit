@@ -16,6 +16,7 @@ export default class PropertyPanelController {
         this.propStartTime = document.getElementById('propStartTime');
         this.propEndTime = document.getElementById('propEndTime');
         this.propColor = document.getElementById('propColor');
+        this.propDuration = document.getElementById('propDuration');
         this.deleteBtn = document.getElementById('deleteBtn');
         this.setStartTimeBtn = document.getElementById('setStartTimeBtn');
         this.setEndTimeBtn = document.getElementById('setEndTimeBtn');
@@ -27,6 +28,7 @@ export default class PropertyPanelController {
             propStartTime: !!this.propStartTime,
             propEndTime: !!this.propEndTime,
             propColor: !!this.propColor,
+            propDuration: !!this.propDuration,
             deleteBtn: !!this.deleteBtn,
             setStartTimeBtn: !!this.setStartTimeBtn,
             setEndTimeBtn: !!this.setEndTimeBtn
@@ -253,10 +255,22 @@ export default class PropertyPanelController {
             if (this.propStartTime) this.propStartTime.value = hotspot.config.startTime;
             if (this.propEndTime) this.propEndTime.value = hotspot.config.endTime;
             if (this.propColor) this.propColor.value = hotspot.config.color || '#00ff00';
+            
+            // 计算并显示时长（遵循 Phaser 标准）
+            if (this.propDuration) {
+                const duration = hotspot.config.endTime - hotspot.config.startTime;
+                this.propDuration.textContent = `${duration.toFixed(1)}秒`;
+                this.propDuration.style.color = '#4CAF50';
+            }
         } else {
             if (this.propWord) {
                 this.propWord.value = `已选中 ${data.count} 个热区`;
                 this.propWord.disabled = true;
+            }
+            // 多选时清空时长显示
+            if (this.propDuration) {
+                this.propDuration.textContent = '-';
+                this.propDuration.style.color = '#888';
             }
         }
     }
