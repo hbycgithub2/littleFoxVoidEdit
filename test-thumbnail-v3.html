@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V3.0高级特性测试 - 时间轴缩略图</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        #videoContainer {
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 8px;
+        }
+        #phaserContainer {
+            margin: 20px 0;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #console {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 300px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+        .info {
+            background: #1e3a5f;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .feature-item {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+        }
+        .feature-title {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+        .feature-desc {
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 时间轴缩略图 - V3.0高级特性测试</h1>
+        
+        <div class="info">
+            <strong>V3.0新特性：</strong>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <div class="feature-title">⚡ Web Worker</div>
+                    <div class="feature-desc">后台异步处理，不阻塞主线程</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-title">🎯 智能采样</div>
+                    <div class="feature-desc">检测关键帧，优化采样点</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-title">📈 渐进式加载</div>
+                    <div class="feature-desc">先低分辨率，后高清</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-title">🎮 高级交互</div>
+                    <div class="feature-desc">缩放、惯性滚动、点击定位</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤1：加载视频</h3>
+            <div id="videoContainer">
+                <video id="video" controls preload="metadata" crossorigin="anonymous">
+                    <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放
+                </video>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤2：选择版本</h3>
+            <button onclick="enableVersion('v1.0')">V1.0 MVP</button>
+            <button onclick="enableVersion('v2.0')">V2.0 性能优化</button>
+            <button onclick="enableVersion('v3.0')">V3.0 高级特性（推荐）</button>
+            <button id="generateBtn" onclick="generateThumbnails()" disabled>生成缩略图</button>
+            <button onclick="runDiagnostics()" style="background:#FF9800;">🔍 运行诊断</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤3：查看缩略图</h3>
+            <div id="phaserContainer"></div>
+            <p style="color: #888;">
+                💡 交互提示：<br>
+                - 拖拽滚动（支持惯性）<br>
+                - 滚轮缩放<br>
+                - 双击缩放<br>
+                - 单击定位时间
+            </p>
+        </div>
+        
+        <div class="test-section">
+            <h3>版本对比</h3>
+            <table style="width:100%; border-collapse: collapse;">
+                <tr style="background:#333;">
+                    <th style="padding:10px; border:1px solid #555;">特性</th>
+                    <th style="padding:10px; border:1px solid #555;">V1.0</th>
+                    <th style="padding:10px; border:1px solid #555;">V2.0</th>
+                    <th style="padding:10px; border:1px solid #555;">V3.0</th>
+                </tr>
+                <tr>
+                    <td style="padding:10px; border:1px solid #555;">基础功能</td>
+                    <td style="padding:10px; border:1px solid #555;">✅</td>
+                    <td style="padding:10px; border:1px solid #555;">✅</td>
+                    <td style="padding:10px; border:1px solid #555;">✅</td>
+                </tr>
+                <tr>
+                    <td style="padding:10px; border:1px solid #555;">性能优化</td>
+                    <td style="padding:10px; border:1px solid #555;">❌</td>
+                    <td style="padding:10px; border:1px solid #555;">✅</td>
+                    <td style="padding:10px; border:1px solid #555;">✅</td>
+                </tr>
+                <tr>
+                    <td style="padding:10px; border:1px solid #555;">高级特性</td>
+                    <td style="padding:10px; border:1px solid #555;">❌</td>
+                    <td style="padding:10px; border:1px solid #555;">❌</td>
+                    <td style="padding:10px; border:1px solid #555;">✅</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="test-section">
+            <h3>控制台输出</h3>
+            <button onclick="clearConsole()">清空</button>
+            <div id="console"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 拦截console.log
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #0f0;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #f44;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+        
+        function runDiagnostics() {
+            console.log('\n========== 运行深度10层诊断 ==========\n');
+            
+            // 层1-10检查
+            console.log('📦 层1: 全局对象');
+            console.log('  game:', !!window.game);
+            console.log('  thumbnailInitializer:', !!window.thumbnailInitializer);
+            
+            if (window.game) {
+                console.log('\n🎮 层2: Phaser Game');
+                console.log('  scene:', !!window.game.scene);
+                
+                const scene = window.game.scene.getScene('TimelineThumbnailScene');
+                console.log('\n🎬 层3: Scene');
+                console.log('  TimelineThumbnailScene:', !!scene);
+                if (scene) {
+                    console.log('  thumbnailLayer:', !!scene.thumbnailLayer);
+                    console.log('  thumbnailLayer.list.length:', scene.thumbnailLayer.list.length);
+                }
+            }
+            
+            if (window.thumbnailInitializer) {
+                console.log('\n🔧 层4: Initializer');
+                console.log('  initialized:', window.thumbnailInitializer.initialized);
+                console.log('  enabled:', window.thumbnailInitializer.config.enabled);
+                console.log('  renderer:', !!window.thumbnailInitializer.renderer);
+                
+                if (window.thumbnailInitializer.renderer) {
+                    console.log('\n🎨 层5: Renderer');
+                    const stats = window.thumbnailInitializer.renderer.getStats();
+                    console.log('  stats:', stats);
+                }
+            }
+            
+            const video = document.getElementById('video');
+            console.log('\n📹 层6: Video');
+            console.log('  video:', !!video);
+            if (video) {
+                console.log('  duration:', video.duration);
+                console.log('  readyState:', video.readyState);
+            }
+            
+            console.log('\n========== 诊断完成 ==========\n');
+        }
+        
+        let selectedVersion = 'v3.0';
+        
+        function enableVersion(version) {
+            console.log(`=== 选择版本: ${version} ===`);
+            selectedVersion = version;
+            
+            if (window.thumbnailInitializer) {
+                console.log('✅ 开始启用...');
+                window.thumbnailInitializer.enable(version);
+                
+                // 等待启动完成
+                setTimeout(() => {
+                    console.log('\n=== 启动后检查 ===');
+                    const scene = window.game.scene.getScene('TimelineThumbnailScene');
+                    console.log('  Scene:', !!scene);
+                    console.log('  Renderer:', !!window.thumbnailInitializer.renderer);
+                    console.log('  Scroller:', !!window.thumbnailInitializer.scroller);
+                    
+                    if (scene) {
+                        console.log('  thumbnailLayer:', !!scene.thumbnailLayer);
+                        console.log('  cameras.main:', !!scene.cameras.main);
+                    }
+                    
+                    document.getElementById('generateBtn').disabled = false;
+                    
+                    // 禁用版本按钮
+                    const buttons = document.querySelectorAll('button');
+                    buttons.forEach(btn => {
+                        if (btn.textContent.includes('V1.0') || 
+                            btn.textContent.includes('V2.0') || 
+                            btn.textContent.includes('V3.0')) {
+                            btn.disabled = true;
+                        }
+                    });
+                }, 500);
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+                alert('ThumbnailInitializer未加载，请刷新页面');
+            }
+        }
+        
+        function generateThumbnails() {
+            console.log('=== 手动生成缩略图 ===');
+            const video = document.getElementById('video');
+            
+            if (!video || !video.duration) {
+                console.error('❌ 视频未加载或时长为0');
+                alert('请先等待视频加载完成');
+                return;
+            }
+            
+            console.log('✅ 视频已加载:', {
+                duration: video.duration,
+                width: video.videoWidth,
+                height: video.videoHeight
+            });
+            
+            if (window.thumbnailInitializer) {
+                console.log('✅ ThumbnailInitializer存在');
+                console.log('  initialized:', window.thumbnailInitializer.initialized);
+                console.log('  renderer:', !!window.thumbnailInitializer.renderer);
+                
+                window.thumbnailInitializer.loadVideo(video);
+                document.getElementById('generateBtn').disabled = true;
+                
+                // 5秒后运行诊断
+                setTimeout(() => {
+                    console.log('\n=== 5秒后诊断 ===');
+                    if (window.thumbnailInitializer.renderer) {
+                        const stats = window.thumbnailInitializer.renderer.getStats();
+                        console.log('Renderer统计:', stats);
+                    }
+                }, 5000);
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+                alert('ThumbnailInitializer未加载，请刷新页面');
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 V3.0高级特性测试页面加载完成\n');
+                console.log('💡 操作步骤:');
+                console.log('  1. 等待视频加载完成');
+                console.log('  2. 选择版本（推荐V3.0）');
+                console.log('  3. 点击"生成缩略图"按钮');
+                console.log('  4. 体验高级交互功能\n');
+                console.log('🎮 交互说明:');
+                console.log('  - 拖拽滚动（松开后有惯性效果）');
+                console.log('  - 滚轮缩放');
+                console.log('  - 双击缩放');
+                console.log('  - 单击定位到对应时间\n');
+            }, 1000);
+        });
+    </script>
+    
+    <!-- Phaser 3 库 -->
+    <script src="lib/phaser.min.js"></script>
+    
+    <!-- 应用入口 -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

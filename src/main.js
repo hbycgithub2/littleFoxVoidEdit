@@ -16,6 +16,7 @@ import TooltipManager from './dom/TooltipManager.js';
 import KeyboardManager from './utils/KeyboardManager.js';
 import PerformanceTest from './utils/PerformanceTest.js';
 import ViewMenu from './dom/ViewMenu.js';
+import ThumbnailInitializer from './phaser/timeline/ThumbnailInitializer.js';
 
 // 全局错误处理
 window.addEventListener('error', (event) => {
@@ -49,6 +50,7 @@ function initApp() {
     try {
         // 创建 Phaser Game（遵循官方标准）
         const game = new Phaser.Game(config);
+        
         
         // 初始化用户体验工具（优先级 4）
         const toast = new ToastManager();
@@ -155,6 +157,13 @@ function initApp() {
         console.log('✅ ToastManager 已初始化');
         console.log('✅ TooltipManager 已初始化');
         console.log('✅ KeyboardManager 已初始化');
+        console.log('⏸️ ThumbnailInitializer 已初始化（默认禁用）');
+        console.log('\n💡 时间轴缩略图命令:');
+        console.log('  thumbnailInitializer.enable()              - 启用缩略图功能');
+        console.log('  thumbnailInitializer.disable()             - 禁用缩略图功能');
+        console.log('  thumbnailInitializer.getConfig()           - 查看配置');
+        console.log('  thumbnailInitializer.analyzeArchitecture() - 运行架构分析');
+        console.log('  thumbnailInitializer.loadVideo(video)      - 手动加载视频\n');
         
     } catch (error) {
         console.error('初始化失败:', error);

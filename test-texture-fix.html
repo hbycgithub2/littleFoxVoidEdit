@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>纹理加载修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        #console {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 600px;
+            overflow-y: auto;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>🧪 纹理加载修复测试</h1>
+    <p>测试 textures.on('addtexture') 修复方案</p>
+    
+    <button onclick="runTest()">运行测试</button>
+    <button onclick="clearConsole()">清空日志</button>
+    
+    <div id="console"></div>
+    
+    <script>
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<div>' + message + '</div>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+    </script>
+    
+    <script src="lib/phaser.min.js"></script>
+    
+    <script>
+        // 创建简单的Phaser场景
+        class TestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TestScene' });
+            }
+            
+            create() {
+                console.log('✅ TestScene created');
+                this.container = this.add.container(0, 0);
+                
+                // 测试背景
+                const bg = this.add.graphics();
+                bg.fillStyle(0x333333, 1);
+                bg.fillRect(0, 0, 800, 100);
+                this.container.add(bg);
+            }
+        }
+        
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 100,
+            backgroundColor: '#000000',
+            scene: TestScene
+        };
+        
+        const game = new Phaser.Game(config);
+        window.testGame = game;
+        
+        console.log('✅ Phaser Game已创建');
+        
+        // 测试函数
+        async function runTest() {
+            console.log('\n========== 开始测试 ==========\n');
+            
+            const scene = game.scene.getScene('TestScene');
+            if (!scene) {
+                console.error('❌ Scene未找到');
+                return;
+            }
+            
+            console.log('✅ Scene已找到');
+            
+            // 生成3个测试纹理
+            const testImages = [];
+            
+            for (let i = 0; i < 3; i++) {
+                const textureKey = `test_texture_${i}`;
+                const base64 = generateTestImage(i);
+                
+                console.log(`\n🎨 测试纹理#${i}:`);
+                console.log(`  Key: ${textureKey}`);
+                
+                // 创建Image对象
+                const image = scene.add.image(i * 100 + 50, 50, '__DEFAULT');
+                image.setDisplaySize(80, 60);
+                scene.container.add(image);
+                testImages.push(image);
+                
+                console.log(`  ✅ Image已创建`);
+                
+                // 使用修复后的方案：先监听，再添加
+                const onTextureAdded = (key) => {
+                    if (key === textureKey) {
+                        console.log(`  🎉 纹理加载完成: ${key}`);
+                        
+                        // 设置纹理
+                        image.setTexture(textureKey);
+                        
+                        // 验证
+                        const texture = scene.textures.get(textureKey);
+                        console.log(`  ✅ 纹理已设置:`, {
+                            key: texture.key,
+                            width: texture.source[0]?.width,
+                            height: texture.source[0]?.height,
+                            imageTexture: image.texture.key
+                        });
+                        
+                        // 移除监听器
+                        scene.textures.off('addtexture', onTextureAdded);
+                    }
+                };
+                
+                // 先监听
+                scene.textures.on('addtexture', onTextureAdded);
+                console.log(`  📡 监听器已设置`);
+                
+                // 再添加
+                scene.textures.addBase64(textureKey, base64);
+                console.log(`  📤 纹理已提交加载`);
+                
+                // 等待一下
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            console.log('\n========== 测试完成 ==========\n');
+            console.log('💡 检查上方画布，应该看到3个不同颜色的矩形');
+            
+            // 最终验证
+            setTimeout(() => {
+                console.log('\n📊 最终验证:');
+                testImages.forEach((img, i) => {
+                    console.log(`  Image#${i}:`, {
+                        texture: img.texture.key,
+                        size: `${img.texture.source[0]?.width}x${img.texture.source[0]?.height}`,
+                        valid: img.texture.key !== '__DEFAULT' && img.texture.key !== '__MISSING'
+                    });
+                });
+            }, 500);
+        }
+        
+        // 生成测试图片（不同颜色）
+        function generateTestImage(index) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 80;
+            canvas.height = 60;
+            const ctx = canvas.getContext('2d');
+            
+            // 不同颜色
+            const colors = ['#ff0000', '#00ff00', '#0000ff'];
+            ctx.fillStyle = colors[index];
+            ctx.fillRect(0, 0, 80, 60);
+            
+            // 添加文字
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`#${index}`, 40, 30);
+            
+            return canvas.toDataURL('image/png');
+        }
+    </script>
+</body>
+</html>

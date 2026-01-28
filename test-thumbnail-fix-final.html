@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>缩略图修复测试</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #000; color: #fff; }
+        #info { margin-bottom: 20px; }
+        button { margin: 5px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>缩略图修复测试</h2>
+        <p>测试项：</p>
+        <ul>
+            <li>✓ 缩略图不被热区遮挡</li>
+            <li>✓ 缩放3倍以上才重新生成</li>
+            <li>✓ 缩略图不超出画布</li>
+        </ul>
+        <button onclick="location.reload(true)">强制刷新 (Ctrl+Shift+R)</button>
+        <button onclick="checkThumbnails()">检查缩略图状态</button>
+    </div>
+    
+    <script>
+        function checkThumbnails() {
+            if (window.timelinePanel && window.timelinePanel.thumbnailManager) {
+                const manager = window.timelinePanel.thumbnailManager;
+                console.log('=== 缩略图状态 ===');
+                console.log('缩略图数量:', manager.thumbnails.length);
+                console.log('上次生成scale:', manager.lastGeneratedScale);
+                console.log('当前scale:', window.timelinePanel.scale);
+                console.log('是否正在生成:', manager.generating);
+                alert(`缩略图数量: ${manager.thumbnails.length}\n上次生成scale: ${manager.lastGeneratedScale}\n当前scale: ${window.timelinePanel.scale}`);
+            } else {
+                alert('TimelinePanel未初始化');
+            }
+        }
+        
+        // 5秒后自动跳转到主页面
+        setTimeout(() => {
+            if (confirm('测试页面将跳转到主页面，确认？')) {
+                window.location.href = '/';
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -90,7 +90,8 @@ export default class LayerGroupController {
         const layers = this.scene.layerManager.getLayers();
         const hotspots = this.scene.registry.get('hotspots') || [];
         
-        let currentY = this.scaleHeight + 10;
+        // 修复：图层从缩略图下方开始（Y=75，缩略图高度45 + 时间刻度30）
+        let currentY = this.scaleHeight + 45 + 10;
         
         layers.forEach(layer => {
             // 绘制图层标题
@@ -293,7 +294,8 @@ export default class LayerGroupController {
         if (!this.scene) return null;
         
         const layers = this.scene.layerManager.getLayers();
-        let currentY = this.scaleHeight + 10;
+        // 修复：图层从缩略图下方开始
+        let currentY = this.scaleHeight + 45 + 10;
         
         for (const layer of layers) {
             // 检查是否点击了图层标题
@@ -329,7 +331,8 @@ export default class LayerGroupController {
         
         const layers = this.scene.layerManager.getLayers();
         const hotspots = this.scene.registry.get('hotspots') || [];
-        let currentY = this.scaleHeight + 10;
+        // 修复：图层从缩略图下方开始
+        let currentY = this.scaleHeight + 45 + 10;
         
         for (const layer of layers) {
             currentY += this.layerHeaderHeight;
@@ -403,7 +406,8 @@ export default class LayerGroupController {
         
         const layers = this.scene.layerManager.getLayers();
         const hotspots = this.scene.registry.get('hotspots') || [];
-        let currentY = this.scaleHeight + 10;
+        // 修复：图层从缩略图下方开始
+        let currentY = this.scaleHeight + 45 + 10;
         
         for (const layer of layers) {
             currentY += this.layerHeaderHeight;

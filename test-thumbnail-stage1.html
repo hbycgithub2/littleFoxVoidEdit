@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阶段1测试 - 架构调研</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #console {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 400px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+        .info {
+            background: #1e3a5f;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 时间轴缩略图 - 阶段1架构调研测试</h1>
+    
+    <div class="info">
+        <strong>说明：</strong>本页面用于测试架构分析功能，所有分析结果将输出到控制台。
+    </div>
+    
+    <div class="test-section">
+        <h3>步骤 1.1：Phaser架构分析</h3>
+        <button onclick="testPhaserAnalysis()">分析Phaser架构</button>
+        <div id="phaserResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>步骤 1.2：DOM时间轴分析</h3>
+        <button onclick="testDOMAnalysis()">分析DOM时间轴</button>
+        <div id="domResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>步骤 1.3：集成方案决策</h3>
+        <button onclick="testIntegrationStrategy()">确定集成方案</button>
+        <div id="strategyResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>完整分析</h3>
+        <button onclick="runFullAnalysis()">运行完整架构分析</button>
+        <button onclick="testEventBridge()">测试事件桥接</button>
+        <div id="fullResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>控制台输出</h3>
+        <button onclick="clearConsole()">清空控制台</button>
+        <div id="console"></div>
+    </div>
+    
+    <!-- 模拟视频元素 -->
+    <video id="video" style="display:none;" width="640" height="360">
+        <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+    </video>
+    
+    <!-- 模拟时间轴Canvas -->
+    <canvas id="timelineCanvas" style="display:none;" width="800" height="100"></canvas>
+    
+    <script>
+        // 拦截console.log
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #0f0;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #f44;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+        
+        function testPhaserAnalysis() {
+            console.log('=== 测试Phaser架构分析 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const analyzer = thumbnailInitializer.analyzer;
+                const result = analyzer.analyzePhaserArchitecture();
+                document.getElementById('phaserResult').innerHTML = 
+                    '<p style="color: #4CAF50;">✅ Phaser架构分析完成（见控制台）</p>';
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        function testDOMAnalysis() {
+            console.log('=== 测试DOM时间轴分析 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const analyzer = thumbnailInitializer.analyzer;
+                const result = analyzer.analyzeDOMTimeline();
+                document.getElementById('domResult').innerHTML = 
+                    '<p style="color: #4CAF50;">✅ DOM时间轴分析完成（见控制台）</p>';
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        function testIntegrationStrategy() {
+            console.log('=== 测试集成方案决策 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const analyzer = thumbnailInitializer.analyzer;
+                const strategy = analyzer.determineIntegrationStrategy();
+                const decisions = analyzer.makeTechnicalDecisions();
+                document.getElementById('strategyResult').innerHTML = 
+                    '<p style="color: #4CAF50;">✅ 集成方案已确定（见控制台）</p>';
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        function runFullAnalysis() {
+            console.log('=== 运行完整架构分析 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const results = thumbnailInitializer.analyzeArchitecture();
+                document.getElementById('fullResult').innerHTML = 
+                    '<p style="color: #4CAF50;">✅ 完整分析完成（见控制台）</p>' +
+                    '<p style="color: #2196F3;">💡 使用 thumbnailInitializer.analyzer.getResults() 获取结果</p>';
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        function testEventBridge() {
+            console.log('=== 测试事件桥接 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const bridge = thumbnailInitializer.getEventBridge();
+                
+                // 测试事件监听
+                bridge.on('video-loaded', (data) => {
+                    console.log('✅ 收到video-loaded事件:', data);
+                });
+                
+                // 模拟发送事件
+                window.dispatchEvent(new CustomEvent('video:loaded', {
+                    detail: { duration: 120, width: 640, height: 360 }
+                }));
+                
+                // 测试请求视频信息
+                bridge.requestVideoInfo().then(info => {
+                    console.log('📺 视频信息:', info);
+                });
+                
+                document.getElementById('fullResult').innerHTML = 
+                    '<p style="color: #4CAF50;">✅ 事件桥接测试完成（见控制台）</p>';
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        // 页面加载时自动运行
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 阶段1测试页面加载完成\n');
+                console.log('💡 提示: 点击按钮运行各项测试');
+            }, 1000);
+        });
+    </script>
+    
+    <!-- 加载主应用 -->
+    <script src="lib/phaser.min.js"></script>
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

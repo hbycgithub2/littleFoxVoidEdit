@@ -1,0 +1,40 @@
+=== 时间轴缩略图修复方案 ===
+
+## 问题定位（深度50层分析）
+
+### 问题1：缩略图被遮挡
+- 原因：render顺序错误，热区在缩略图之后绘制
+- 解决：调整render顺序，确保缩略图在热区之前
+
+### 问题2：频繁重新生成
+- 原因：shouldRegenerate阈值太小（2倍）
+- 解决：改为3倍/0.33倍，更宽松
+
+### 问题3：超出画布
+- 原因：clip裁剪区域设置但可能被restore
+- 解决：确保clip在绘制前设置，绘制后restore
+
+## 执行方案
+
+### 步骤1：修复TimelineThumbnailManager.js
+- shouldRegenerate阈值：3倍/0.33倍
+- draw方法：添加clip裁剪
+- 半透明：globalAlpha = 0.85
+
+### 步骤2：修复TimelinePanel.js render顺序
+正确顺序：
+1. 背景
+2. 时间刻度
+3. 缩略图（关键：在热区之前）
+4. 波形
+5. 热区
+6. 其他元素
+
+### 步骤3：修复drawCurrentTimeIndicator
+- 添加边界检查：if (x < 0 || x > canvasWidth) return
+
+## 验证清单
+✓ 缩略图不被遮挡
+✓ 缩放3倍以上才重新生成
+✓ 缩略图不超出画布
+✓ 时间指示器不超出画布

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V2.0性能优化测试 - 时间轴缩略图</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        #videoContainer {
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 8px;
+        }
+        #phaserContainer {
+            margin: 20px 0;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #console {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 300px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+        .info {
+            background: #1e3a5f;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+        }
+        .stats {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .stat-item {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+        }
+        .stat-value {
+            color: #4CAF50;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 时间轴缩略图 - V2.0性能优化测试</h1>
+        
+        <div class="info">
+            <strong>V2.0新特性：</strong>
+            <ul>
+                <li>✅ LRU缓存管理（限制内存使用）</li>
+                <li>✅ 对象池复用（减少GC压力）</li>
+                <li>✅ 虚拟滚动（只渲染可见区域）</li>
+                <li>✅ 性能监控（帧率、内存、延迟）</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤1：加载视频</h3>
+            <div id="videoContainer">
+                <video id="video" controls preload="metadata" crossorigin="anonymous">
+                    <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放
+                </video>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤2：启用缩略图功能</h3>
+            <button id="enableV1Btn" onclick="enableV1()">启用V1.0</button>
+            <button id="enableV2Btn" onclick="enableV2()">启用V2.0（推荐）</button>
+            <button id="generateBtn" onclick="generateThumbnails()" disabled>生成缩略图</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤3：查看缩略图</h3>
+            <div id="phaserContainer"></div>
+            <p style="color: #888;">提示：使用鼠标拖拽或滚轮滚动查看缩略图</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>性能统计</h3>
+            <button onclick="showStats()">查看统计</button>
+            <button onclick="checkPerformance()">检查性能</button>
+            <div id="statsDisplay" class="stats" style="display:none;">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">帧率</div>
+                        <div class="stat-value" id="fpsValue">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">内存使用</div>
+                        <div class="stat-value" id="memoryValue">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">可见缩略图</div>
+                        <div class="stat-value" id="visibleValue">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">缓存命中率</div>
+                        <div class="stat-value" id="cacheValue">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>控制台输出</h3>
+            <button onclick="clearConsole()">清空</button>
+            <div id="console"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 拦截console.log
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #0f0;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #f44;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+        
+        function enableV1() {
+            console.log('=== 启用V1.0 ===');
+            if (window.thumbnailInitializer) {
+                window.thumbnailInitializer.enable('v1.0');
+                document.getElementById('enableV1Btn').disabled = true;
+                document.getElementById('enableV2Btn').disabled = true;
+                document.getElementById('generateBtn').disabled = false;
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        function enableV2() {
+            console.log('=== 启用V2.0 ===');
+            if (window.thumbnailInitializer) {
+                window.thumbnailInitializer.enable('v2.0');
+                document.getElementById('enableV1Btn').disabled = true;
+                document.getElementById('enableV2Btn').disabled = true;
+                document.getElementById('generateBtn').disabled = false;
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        function generateThumbnails() {
+            console.log('=== 生成缩略图 ===');
+            const video = document.getElementById('video');
+            
+            if (!video || !video.duration) {
+                console.error('❌ 视频未加载或时长为0');
+                return;
+            }
+            
+            if (window.thumbnailInitializer) {
+                window.thumbnailInitializer.loadVideo(video);
+                document.getElementById('generateBtn').disabled = true;
+                
+                // 自动显示统计
+                setTimeout(() => {
+                    showStats();
+                    // 定时更新统计
+                    setInterval(updateStats, 1000);
+                }, 2000);
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        function showStats() {
+            if (window.thumbnailInitializer) {
+                const stats = window.thumbnailInitializer.getPerformanceStats();
+                document.getElementById('statsDisplay').style.display = 'block';
+                updateStatsDisplay(stats);
+            }
+        }
+        
+        function updateStats() {
+            if (window.thumbnailInitializer) {
+                const stats = window.thumbnailInitializer.getPerformanceStats();
+                updateStatsDisplay(stats);
+            }
+        }
+        
+        function updateStatsDisplay(stats) {
+            if (stats.performance) {
+                document.getElementById('fpsValue').textContent = stats.performance.fps;
+                document.getElementById('memoryValue').textContent = stats.performance.memory;
+            }
+            if (stats.renderer) {
+                document.getElementById('visibleValue').textContent = stats.renderer.visibleThumbnails;
+                if (stats.renderer.cache) {
+                    document.getElementById('cacheValue').textContent = stats.renderer.cache.hitRate;
+                }
+            }
+        }
+        
+        function checkPerformance() {
+            console.log('=== 检查性能 ===');
+            if (window.thumbnailInitializer) {
+                window.thumbnailInitializer.checkPerformance();
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 V2.0性能优化测试页面加载完成\n');
+                console.log('💡 操作步骤:');
+                console.log('  1. 等待视频加载完成');
+                console.log('  2. 点击"启用V2.0"按钮');
+                console.log('  3. 点击"生成缩略图"按钮');
+                console.log('  4. 查看性能统计\n');
+            }, 1000);
+        });
+    </script>
+    
+    <!-- Phaser 3 库 -->
+    <script src="lib/phaser.min.js"></script>
+    
+    <!-- 应用入口 -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -22,6 +22,8 @@ import TimelineHighlightController from './timeline/TimelineHighlightController.
 import TimelineDirectCreateController from './timeline/TimelineDirectCreateController.js';
 import TimelineRangeCopyController from './timeline/TimelineRangeCopyController.js';
 import TimelineFineAdjustController from './timeline/TimelineFineAdjustController.js';
+import TimelineThumbnailManager from './timeline/TimelineThumbnailManager.js';
+import TimelineHorizontalScrollController from './timeline/TimelineHorizontalScrollController.js';
 
 export default class TimelinePanel {
     constructor(game) {
@@ -104,6 +106,12 @@ export default class TimelinePanel {
         // 初始化时间微调控制器
         this.fineAdjustController = new TimelineFineAdjustController(this);
         
+        // 初始化缩略图管理器
+        this.thumbnailManager = new TimelineThumbnailManager(this);
+        
+        // 初始化水平滚动控制器
+        this.horizontalScrollController = new TimelineHorizontalScrollController(this);
+        
         this.setupCanvas();
         this.setupEvents();
         this.render();
@@ -147,6 +155,24 @@ export default class TimelinePanel {
             this.videoDuration = duration;
             this.render();
         });
+        
+        // 监听video:loaded事件生成缩略图
+        window.addEventListener('video:loaded', (event) => {
+            const videoElement = event.detail?.element;
+            if (videoElement && videoElement.duration) {
+                console.log('🎬 TimelinePanel: 开始生成缩略图...');
+                this.thumbnailManager.loadVideo(videoElement);
+            }
+        });
+        
+        // 检查视频是否已加载（处理监听器设置前视频已加载的情况）
+        setTimeout(() => {
+            const video = document.querySelector('video');
+            if (video && video.duration && video.readyState >= 2) {
+                console.log('🎬 TimelinePanel: 视频已加载，立即生成缩略图...');
+                this.thumbnailManager.loadVideo(video);
+            }
+        }, 1000);
         
         // 监听热区变化
         this.scene.events.on('hotspot:added', () => this.render());
@@ -295,76 +321,87 @@ export default class TimelinePanel {
         this.ctx.fillStyle = '#1a1a1a';
         this.ctx.fillRect(0, 0, width, height);
         
-        // 绘制时间刻度（固定在顶部，不滚动）
+        // 应用水平滚动
+        this.horizontalScrollController.applyScroll(this.ctx);
+        
+        // 绘制时间刻度
         this.drawTimeScale();
         
-        // 绘制波形（在时间刻度下方，不滚动）
+        // 绘制缩略图
+        if (this.thumbnailManager) {
+            this.thumbnailManager.draw(this.ctx);
+        }
+        
+        // 绘制波形
         if (this.waveformController) {
             this.waveformController.drawWaveform(this.ctx);
         }
         
-        // 应用滚动偏移
+        // 应用垂直滚动
         this.virtualScrollController.applyScroll(this.ctx);
         
-        // 绘制热区时间条（使用虚拟滚动）
+        // 绘制热区
         this.drawHotspotBars();
         
-        // 恢复滚动偏移
+        // 恢复垂直滚动
         this.virtualScrollController.restoreScroll(this.ctx);
         
-        // 绘制当前时间指示器（不滚动）
+        // 恢复水平滚动
+        this.horizontalScrollController.restoreScroll(this.ctx);
+        
+        // 绘制当前时间指示器
         this.drawCurrentTimeIndicator();
         
-        // 绘制选中高亮（在时间条之后绘制）
+        // 绘制选中高亮
         if (this.selectionController) {
             this.virtualScrollController.applyScroll(this.ctx);
             this.selectionController.drawSelectionHighlight(this.ctx);
             this.virtualScrollController.restoreScroll(this.ctx);
         }
         
-        // 绘制高亮闪烁效果（在选中高亮之后）
+        // 绘制高亮闪烁
         if (this.highlightController) {
             this.virtualScrollController.applyScroll(this.ctx);
             this.highlightController.drawHighlight(this.ctx);
             this.virtualScrollController.restoreScroll(this.ctx);
         }
         
-        // 绘制框选框（在高亮之后绘制）
+        // 绘制框选框
         if (this.selectionController) {
             this.selectionController.drawBoxSelection(this.ctx);
         }
         
-        // 绘制入点/出点标记（不滚动）
+        // 绘制入点/出点标记
         if (this.keyboardController) {
             this.keyboardController.drawInOutPoints(this.ctx);
         }
         
-        // 绘制标记（不滚动）
+        // 绘制标记
         if (this.markerController) {
             this.markerController.drawMarkers(this.ctx);
         }
         
-        // 绘制吸附线（不滚动）
+        // 绘制吸附线
         if (this.snapController) {
             this.snapController.drawSnapLine(this.ctx);
         }
         
-        // 绘制滚动条（最后绘制）
+        // 绘制滚动条
         if (this.virtualScrollController) {
             this.virtualScrollController.drawScrollbar(this.ctx);
         }
         
-        // 绘制时间区域选择（在滚动条之后，确保在最上层）
+        // 绘制时间区域选择
         if (this.rangeController) {
             this.rangeController.drawRange(this.ctx);
         }
         
-        // 绘制点击视觉反馈（最后绘制，确保在最上层）
+        // 绘制点击视觉反馈
         if (this.timeScaleController) {
             this.timeScaleController.drawClickFeedback(this.ctx);
         }
         
-        // 绘制直接创建预览（最后绘制）
+        // 绘制直接创建预览
         if (this.directCreateController) {
             this.directCreateController.drawPreview(this.ctx);
         }
@@ -411,8 +448,12 @@ export default class TimelinePanel {
     }
     
     drawCurrentTimeIndicator() {
-        const x = this.currentTime * this.scale;
+        const x = this.currentTime * this.scale - this.horizontalScrollController.scrollX;
         const canvasHeight = this.canvas.height;
+        const canvasWidth = this.canvas.width;
+        
+        // 只在可见区域内绘制
+        if (x < 0 || x > canvasWidth) return;
         
         // 红色竖线
         this.ctx.strokeStyle = '#ff0000';
@@ -437,7 +478,14 @@ export default class TimelinePanel {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        // 优先检测Alt+拖拽创建（最高优先级）
+        // 中键或Shift+左键：水平滚动
+        if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+            this.horizontalScrollController.startDrag(e.clientX);
+            this.canvas.style.cursor = 'grabbing';
+            return;
+        }
+        
+        // 优先检测Alt+拖拽创建
         if (this.directCreateController.handleMouseDown(x, y, e.altKey)) {
             return;
         }
@@ -528,7 +576,12 @@ export default class TimelinePanel {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        // 处理直接创建拖拽（最高优先级）
+        // 处理水平滚动拖拽
+        if (this.horizontalScrollController.drag(e.clientX)) {
+            return;
+        }
+        
+        // 处理直接创建拖拽
         if (this.directCreateController.handleMouseMove(x, y)) {
             return;
         }
@@ -634,7 +687,10 @@ export default class TimelinePanel {
     }
     
     onMouseUp() {
-        // 处理直接创建完成（最高优先级）
+        // 结束水平滚动拖拽
+        this.horizontalScrollController.endDrag();
+        
+        // 处理直接创建完成
         if (this.directCreateController.handleMouseUp()) {
             return;
         }
@@ -759,7 +815,12 @@ export default class TimelinePanel {
     }
     
     onWheel(e) {
-        // 优先处理虚拟滚动
+        // 优先处理水平滚动（Shift+滚轮）
+        if (this.horizontalScrollController.handleWheel(e)) {
+            return;
+        }
+        
+        // 处理垂直滚动
         if (this.virtualScrollController.handleWheel(e)) {
             return;
         }
@@ -880,6 +941,10 @@ export default class TimelinePanel {
         if (this.fineAdjustController) {
             this.fineAdjustController.destroy();
             this.fineAdjustController = null;
+        }
+        
+        if (this.thumbnailManager) {
+            this.thumbnailManager = null;
         }
         
         // 移除事件监听

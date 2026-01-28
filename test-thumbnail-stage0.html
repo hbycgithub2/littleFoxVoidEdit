@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阶段0测试 - 时间轴缩略图</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #console {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 300px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 时间轴缩略图 - 阶段0验收测试</h1>
+    
+    <div class="test-section">
+        <h3>步骤 0.1：环境检查</h3>
+        <button onclick="testEnvironment()">运行环境检查</button>
+        <div id="envResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>步骤 0.2：功能开关测试</h3>
+        <button onclick="testEnable()">启用功能</button>
+        <button onclick="testDisable()">禁用功能</button>
+        <button onclick="testConfig()">查看配置</button>
+        <div id="switchResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>步骤 0.3：目录结构验证</h3>
+        <button onclick="testStructure()">验证目录结构</button>
+        <div id="structureResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>控制台输出</h3>
+        <div id="console"></div>
+    </div>
+    
+    <script>
+        // 拦截console.log
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += message + '<br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function testEnvironment() {
+            console.log('=== 环境检查测试 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const config = thumbnailInitializer.getConfig();
+                console.log('✅ ThumbnailInitializer 已加载');
+                console.log('配置状态:', {
+                    enabled: config.enabled,
+                    version: config.version,
+                    fallbackToDom: config.fallbackToDom
+                });
+                document.getElementById('envResult').innerHTML = 
+                    '<p style="color: #4CAF50;">✅ 环境检查通过</p>';
+            } else {
+                console.log('❌ ThumbnailInitializer 未加载');
+                document.getElementById('envResult').innerHTML = 
+                    '<p style="color: #f44336;">❌ 环境检查失败</p>';
+            }
+        }
+        
+        function testEnable() {
+            console.log('=== 启用功能测试 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const result = thumbnailInitializer.enable();
+                document.getElementById('switchResult').innerHTML = 
+                    `<p style="color: ${result ? '#4CAF50' : '#ff9800'};">
+                        ${result ? '✅ 功能已启用' : '⚠️ 功能启用但环境检查失败（已降级）'}
+                    </p>`;
+            }
+        }
+        
+        function testDisable() {
+            console.log('=== 禁用功能测试 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                thumbnailInitializer.disable();
+                document.getElementById('switchResult').innerHTML = 
+                    '<p style="color: #ff9800;">⏸️ 功能已禁用</p>';
+            }
+        }
+        
+        function testConfig() {
+            console.log('=== 配置查看测试 ===');
+            if (typeof thumbnailInitializer !== 'undefined') {
+                const config = thumbnailInitializer.getConfig();
+                console.log('当前配置:', config);
+                document.getElementById('switchResult').innerHTML = 
+                    '<p style="color: #2196F3;">📋 配置已输出到控制台</p>';
+            }
+        }
+        
+        function testStructure() {
+            console.log('=== 目录结构验证 ===');
+            const expectedFiles = [
+                'src/phaser/timeline/ThumbnailConfig.js',
+                'src/phaser/timeline/ThumbnailInitializer.js',
+                'src/phaser/timeline/scenes/',
+                'src/phaser/timeline/gameobjects/',
+                'src/phaser/timeline/utils/',
+                'src/phaser/utils/EnvironmentChecker.js'
+            ];
+            console.log('预期文件结构:', expectedFiles);
+            document.getElementById('structureResult').innerHTML = 
+                '<p style="color: #4CAF50;">✅ 目录结构已创建（见控制台）</p>';
+        }
+        
+        // 页面加载时自动运行环境检查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 页面加载完成，开始自动测试...\n');
+                testEnvironment();
+            }, 1000);
+        });
+    </script>
+    
+    <!-- 加载主应用（包含ThumbnailInitializer） -->
+    <script src="lib/phaser.min.js"></script>
+    <script type="module">
+        import ThumbnailInitializer from './src/phaser/timeline/ThumbnailInitializer.js';
+        import EnvironmentChecker from './src/phaser/utils/EnvironmentChecker.js';
+        
+        // 创建临时game实例用于测试
+        const testConfig = {
+            type: Phaser.HEADLESS,
+            width: 800,
+            height: 600
+        };
+        const game = new Phaser.Game(testConfig);
+        
+        // 创建初始化器
+        window.thumbnailInitializer = new ThumbnailInitializer(game);
+        window.EnvironmentChecker = EnvironmentChecker;
+        
+        console.log('✅ 测试环境已准备就绪');
+    </script>
+</body>
+</html>

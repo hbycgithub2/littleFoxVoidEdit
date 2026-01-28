@@ -24,7 +24,7 @@ export default class TimelineWaveformController {
         // 显示设置
         this.enabled = false;
         this.waveformHeight = 60;
-        this.waveformY = 30; // 在时间刻度下方
+        this.waveformY = 75; // 在缩略图下方（缩略图高度45 + 时间刻度30 = 75）
         
         // 加载状态
         this.isLoading = false;

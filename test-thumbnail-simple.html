@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间轴缩略图 - 简化测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #4CAF50; margin-bottom: 20px; }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        video {
+            width: 100%;
+            max-width: 800px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        #phaserContainer {
+            margin: 20px 0;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background: #000;
+            position: relative;
+            z-index: 1000;
+        }
+        #phaserContainer canvas {
+            display: block;
+            border-radius: 6px;
+        }
+        #console {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 400px;
+            overflow-y: auto;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .status {
+            background: #1e3a5f;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+        }
+        .error { border-left-color: #f44336; background: #3a1e1e; }
+        .success { border-left-color: #4CAF50; background: #1e3a1e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 时间轴缩略图 - 简化测试</h1>
+        
+        <div class="section">
+            <h3>步骤1：加载视频</h3>
+            <video id="video" controls preload="metadata" crossorigin="anonymous">
+                <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+            </video>
+            <div id="videoStatus" class="status">等待视频加载...</div>
+        </div>
+        
+        <div class="section">
+            <h3>步骤2：启用并生成缩略图</h3>
+            <button id="enableBtn" onclick="enableThumbnails()">1. 启用缩略图功能</button>
+            <button id="generateBtn" onclick="generateThumbnails()" disabled>2. 生成缩略图</button>
+            <button onclick="runDiagnostics()">🔍 运行诊断</button>
+            <button onclick="clearConsole()">清空日志</button>
+        </div>
+        
+        <div class="section">
+            <h3>步骤3：查看缩略图</h3>
+            <div id="phaserContainer"></div>
+            <p style="color: #888; margin-top: 10px;">
+                💡 提示：缩略图会显示在上方的黑色区域中<br>
+                - 拖拽滚动查看<br>
+                - 滚轮缩放
+            </p>
+        </div>
+        
+        <div class="section">
+            <h3>控制台输出</h3>
+            <div id="console"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 拦截console.log
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<div style="color: #0f0;">' + message + '</div>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<div style="color: #f44;">' + message + '</div>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+        
+        function updateStatus(message, type = 'status') {
+            const statusDiv = document.getElementById('videoStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+        
+        // 视频加载监听
+        const video = document.getElementById('video');
+        video.addEventListener('loadedmetadata', () => {
+            console.log('✅ 视频加载完成:', {
+                duration: video.duration,
+                width: video.videoWidth,
+                height: video.videoHeight
+            });
+            updateStatus(`视频已加载 (${video.duration.toFixed(2)}秒)`, 'success');
+        });
+        
+        video.addEventListener('error', (e) => {
+            console.error('❌ 视频加载失败:', e);
+            updateStatus('视频加载失败', 'error');
+        });
+        
+        function enableThumbnails() {
+            console.log('\n=== 启用缩略图功能 ===');
+            
+            if (!window.thumbnailInitializer) {
+                console.error('❌ thumbnailInitializer未找到');
+                updateStatus('初始化器未加载', 'error');
+                return;
+            }
+            
+            if (!window.game) {
+                console.error('❌ Phaser Game未找到');
+                updateStatus('Phaser未加载', 'error');
+                return;
+            }
+            
+            console.log('✅ 开始启用...');
+            window.thumbnailInitializer.enable('v3.0');
+            
+            setTimeout(() => {
+                const scene = window.game.scene.getScene('TimelineThumbnailScene');
+                if (scene) {
+                    console.log('✅ Scene已创建');
+                    console.log('  thumbnailLayer:', !!scene.thumbnailLayer);
+                    console.log('  renderer:', !!window.thumbnailInitializer.renderer);
+                    
+                    document.getElementById('enableBtn').disabled = true;
+                    document.getElementById('generateBtn').disabled = false;
+                    updateStatus('缩略图功能已启用', 'success');
+                } else {
+                    console.error('❌ Scene创建失败');
+                    updateStatus('Scene创建失败', 'error');
+                }
+            }, 600);
+        }
+        
+        function generateThumbnails() {
+            console.log('\n=== 生成缩略图 ===');
+            
+            if (!video.duration) {
+                console.error('❌ 视频未加载');
+                updateStatus('请先等待视频加载', 'error');
+                return;
+            }
+            
+            console.log('✅ 开始生成...');
+            updateStatus('正在生成缩略图...', 'status');
+            
+            window.thumbnailInitializer.loadVideo(video);
+            document.getElementById('generateBtn').disabled = true;
+            
+            // 监听进度
+            let progressCount = 0;
+            const checkProgress = setInterval(() => {
+                if (window.thumbnailInitializer.renderer) {
+                    const stats = window.thumbnailInitializer.renderer.getStats();
+                    if (stats.totalFrames > 0) {
+                        updateStatus(`已生成 ${stats.totalFrames} 帧，可见 ${stats.visibleThumbnails} 个`, 'success');
+                        if (stats.visibleThumbnails > 0) {
+                            clearInterval(checkProgress);
+                        }
+                    }
+                }
+                progressCount++;
+                if (progressCount > 20) clearInterval(checkProgress);
+            }, 500);
+        }
+        
+        function runDiagnostics() {
+            console.log('\n========== 深度诊断 ==========');
+            console.log('📦 全局对象:');
+            console.log('  game:', !!window.game);
+            console.log('  thumbnailInitializer:', !!window.thumbnailInitializer);
+            
+            if (window.game) {
+                const scene = window.game.scene.getScene('TimelineThumbnailScene');
+                console.log('\n🎬 Scene:');
+                console.log('  存在:', !!scene);
+                if (scene) {
+                    console.log('  thumbnailLayer:', !!scene.thumbnailLayer);
+                    console.log('  thumbnailLayer.list.length:', scene.thumbnailLayer?.list.length);
+                    console.log('  cameras.main:', !!scene.cameras.main);
+                }
+            }
+            
+            if (window.thumbnailInitializer) {
+                console.log('\n🔧 Initializer:');
+                console.log('  initialized:', window.thumbnailInitializer.initialized);
+                console.log('  enabled:', window.thumbnailInitializer.config.enabled);
+                console.log('  renderer:', !!window.thumbnailInitializer.renderer);
+                
+                if (window.thumbnailInitializer.renderer) {
+                    const stats = window.thumbnailInitializer.renderer.getStats();
+                    console.log('\n🎨 Renderer统计:');
+                    console.log('  ', stats);
+                }
+            }
+            
+            console.log('\n📹 Video:');
+            console.log('  duration:', video.duration);
+            console.log('  readyState:', video.readyState);
+            console.log('========== 诊断完成 ==========\n');
+        }
+        
+        console.log('🚀 简化测试页面已加载');
+        console.log('💡 操作步骤:');
+        console.log('  1. 等待视频加载完成');
+        console.log('  2. 点击"启用缩略图功能"');
+        console.log('  3. 点击"生成缩略图"');
+        console.log('  4. 查看上方黑色区域的缩略图\n');
+    </script>
+    
+    <!-- Phaser 3 库 -->
+    <script src="lib/phaser.min.js"></script>
+    
+    <!-- 最小化的Phaser配置 -->
+    <script type="module">
+        import ThumbnailConfig from './src/phaser/timeline/ThumbnailConfig.js';
+        import ThumbnailInitializer from './src/phaser/timeline/ThumbnailInitializer.js';
+        
+        // 创建最小化的Phaser Game
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'phaserContainer',
+            width: 1200,
+            height: 100,
+            backgroundColor: '#000000',
+            scene: []  // 空场景，由ThumbnailInitializer添加
+        };
+        
+        const game = new Phaser.Game(config);
+        
+        // 创建ThumbnailInitializer
+        const thumbnailInitializer = new ThumbnailInitializer(game);
+        
+        // 导出到全局
+        window.game = game;
+        window.thumbnailInitializer = thumbnailInitializer;
+        
+        console.log('✅ Phaser Game已创建');
+        console.log('✅ ThumbnailInitializer已创建');
+    </script>
+</body>
+</html>

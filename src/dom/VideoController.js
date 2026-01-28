@@ -67,8 +67,18 @@ export default class VideoController {
                 // 检查Video的z-index
                 console.log('📹 Video z-index:', window.getComputedStyle(this.video).zIndex);
                 
-                // 发送全局事件
+                // 发送Phaser全局事件
                 this.game.events.emit('video:loaded', this.video.duration);
+                
+                // 发送DOM CustomEvent（用于时间轴缩略图）
+                window.dispatchEvent(new CustomEvent('video:loaded', {
+                    detail: {
+                        element: this.video,
+                        duration: this.video.duration,
+                        width: w,
+                        height: h
+                    }
+                }));
                 
                 // 隐藏加载动画
                 const scene = this.game.scene.getScene('EditorScene');
@@ -96,6 +106,14 @@ export default class VideoController {
         // 视频时间更新
         this.video.addEventListener('timeupdate', () => {
             this.game.events.emit('video:timeupdate', this.video.currentTime);
+            
+            // 发送DOM CustomEvent（用于时间轴缩略图）
+            window.dispatchEvent(new CustomEvent('video:timeupdate', {
+                detail: {
+                    currentTime: this.video.currentTime,
+                    duration: this.video.duration
+                }
+            }));
         });
         
         // 视频跳转完成（拖动进度条后）

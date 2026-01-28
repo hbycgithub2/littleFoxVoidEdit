@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V1.0 MVP测试 - 时间轴缩略图</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        #videoContainer {
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 8px;
+        }
+        #phaserContainer {
+            margin: 20px 0;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #console {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 300px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+        .info {
+            background: #1e3a5f;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+        }
+        .progress {
+            background: #333;
+            height: 30px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            background: #4CAF50;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 时间轴缩略图 - V1.0 MVP测试</h1>
+        
+        <div class="info">
+            <strong>V1.0 MVP功能：</strong>
+            <ul>
+                <li>✅ 视频帧提取（Canvas API）</li>
+                <li>✅ 缩略图显示（Phaser Scene）</li>
+                <li>✅ 基础滚动（拖拽 + 滚轮）</li>
+                <li>❌ 无缓存优化</li>
+                <li>❌ 无虚拟滚动</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤1：加载视频</h3>
+            <div id="videoContainer">
+                <video id="video" controls preload="metadata" crossorigin="anonymous">
+                    <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放
+                </video>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤2：启用缩略图功能</h3>
+            <button id="enableBtn" onclick="enableThumbnails()">启用缩略图</button>
+            <button id="generateBtn" onclick="generateThumbnails()" disabled>生成缩略图</button>
+            <div class="progress">
+                <div id="progressBar" class="progress-bar">0%</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>步骤3：查看缩略图</h3>
+            <div id="phaserContainer"></div>
+            <p style="color: #888;">提示：使用鼠标拖拽或滚轮滚动查看缩略图</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>控制台输出</h3>
+            <button onclick="clearConsole()">清空</button>
+            <div id="console"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 拦截console.log
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #0f0;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += '<span style="color: #f44;">' + message + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+        
+        function enableThumbnails() {
+            console.log('=== 启用缩略图功能 ===');
+            if (window.thumbnailInitializer) {
+                window.thumbnailInitializer.enable('v1.0');
+                document.getElementById('enableBtn').disabled = true;
+                document.getElementById('generateBtn').disabled = false;
+            } else {
+                console.error('❌ ThumbnailInitializer未加载，请等待页面完全加载');
+            }
+        }
+        
+        function generateThumbnails() {
+            console.log('=== 生成缩略图 ===');
+            const video = document.getElementById('video');
+            
+            if (!video || !video.duration) {
+                console.error('❌ 视频未加载或时长为0');
+                return;
+            }
+            
+            if (window.thumbnailInitializer) {
+                // 监听进度
+                const bridge = window.thumbnailInitializer.getEventBridge();
+                bridge.on('thumbnail-progress', (data) => {
+                    const percent = Math.round((data.current / data.total) * 100);
+                    document.getElementById('progressBar').style.width = percent + '%';
+                    document.getElementById('progressBar').textContent = percent + '%';
+                });
+                
+                // 加载视频
+                window.thumbnailInitializer.loadVideo(video);
+                document.getElementById('generateBtn').disabled = true;
+            } else {
+                console.error('❌ ThumbnailInitializer未加载');
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 V1.0 MVP测试页面加载完成\n');
+                console.log('💡 操作步骤:');
+                console.log('  1. 等待视频加载完成');
+                console.log('  2. 点击"启用缩略图"按钮');
+                console.log('  3. 点击"生成缩略图"按钮');
+                console.log('  4. 等待生成完成后，拖拽或滚轮查看\n');
+            }, 1000);
+        });
+    </script>
+    
+    <!-- Phaser 3 库 -->
+    <script src="lib/phaser.min.js"></script>
+    
+    <!-- 应用入口 -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

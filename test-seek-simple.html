@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试视频Seek</title>
+    <style>
+        body { background: #1a1a1a; color: #fff; padding: 20px; font-family: monospace; }
+        video { width: 400px; }
+        #output { background: #000; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h2>测试视频Seek机制</h2>
+    <video id="video" controls crossorigin="anonymous">
+        <source src="assets/videos/001_I_Can_Hop.mp4" type="video/mp4">
+    </video>
+    <br>
+    <button onclick="testSeek()">测试Seek</button>
+    <button onclick="testExtract()">测试提取3帧</button>
+    <div id="output"></div>
+    <div id="images"></div>
+    
+    <script>
+        const video = document.getElementById('video');
+        const output = document.getElementById('output');
+        const images = document.getElementById('images');
+        
+        function log(msg) {
+            output.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+        
+        // 测试单次seek
+        async function testSeek() {
+            output.innerHTML = '';
+            log('开始测试Seek...');
+            
+            const targetTime = 1.0;
+            log(`设置 currentTime = ${targetTime}`);
+            
+            await new Promise((resolve) => {
+                video.addEventListener('seeked', function onSeeked() {
+                    log(`✅ Seeked触发, currentTime = ${video.currentTime}`);
+                    video.removeEventListener('seeked', onSeeked);
+                    resolve();
+                }, { once: true });
+                
+                video.currentTime = targetTime;
+            });
+            
+            log('测试完成');
+        }
+        
+        // 测试提取3帧
+        async function testExtract() {
+            output.innerHTML = '';
+            images.innerHTML = '';
+            log('开始提取3帧...');
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 160;
+            canvas.height = 120;
+            const ctx = canvas.getContext('2d');
+            
+            const times = [0.5, 1.0, 1.5];
+            
+            for (let i = 0; i < times.length; i++) {
+                const time = times[i];
+                log(`\n--- 提取帧${i} (${time}s) ---`);
+                
+                // Seek到指定时间
+                await new Promise((resolve) => {
+                    video.addEventListener('seeked', function onSeeked() {
+                        log(`  Seeked完成: ${video.currentTime.toFixed(3)}s`);
+                        video.removeEventListener('seeked', onSeeked);
+                        resolve();
+                    }, { once: true });
+                    
+                    video.currentTime = time;
+                    log(`  设置currentTime = ${time}s`);
+                });
+                
+                // 等待一帧
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                
+                // 绘制
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                
+                log(`  ✅ 提取成功, base64长度: ${dataURL.length}`);
+                log(`  前80字符: ${dataURL.substring(0, 80)}`);
+                
+                // 显示图片
+                const img = document.createElement('img');
+                img.src = dataURL;
+                img.style.width = '160px';
+                img.style.margin = '5px';
+                img.title = `${time}s`;
+                images.appendChild(img);
+                
+                // 延迟
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            log('\n✅ 提取完成！检查上方3张图片是否不同');
+        }
+    </script>
+</body>
+</html>
